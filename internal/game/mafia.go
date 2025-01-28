@@ -449,6 +449,8 @@ func (m *MafiaGame) getTwoMaxVotes() (User, User) {
 		if maxFirst.player.(*MafiaPlayer).votes < player.player.(*MafiaPlayer).votes {
 			maxSecond = maxFirst
 			maxFirst = player
+		} else if maxSecond.player.(*MafiaPlayer).votes < player.player.(*MafiaPlayer).votes {
+			maxSecond = player
 		}
 	}
 

@@ -73,3 +73,37 @@ func TestSendMessage(t *testing.T) {
     mockBot.AssertExpectations(t)
 }
 
+func TestMafiaGame_GetTwoMaxVotes(t *testing.T) {
+	users := Users{
+		User{player: &MafiaPlayer{votes: 3}},
+		User{player: &MafiaPlayer{votes: 2}},
+		User{player: &MafiaPlayer{votes: 3}},
+	}
+
+	game := MafiaGame{members: &users}
+
+	maxFirst, maxSecond := game.getTwoMaxVotes()
+
+	assert.Equal(t, users[0].player, maxFirst.player, "First max vote player should be users[0].")
+	assert.Equal(t, users[2].player, maxSecond.player, "Second max vote player should be users[2].")
+
+	users[1].player.(*MafiaPlayer).votes = 5
+	users[0].player.(*MafiaPlayer).votes = 0
+
+	maxFirst, maxSecond = game.getTwoMaxVotes()
+
+	assert.Equal(t, users[1].player, maxFirst.player, "First max vote player should be users[1].")
+	assert.Equal(t, users[2].player, maxSecond.player, "Second max vote player should be users[2].")
+}
+
+func TestMafiaGame_CiviliansIsDead(t *testing.T) {
+	users := Users{
+		User{player: &MafiaPlayer{role: Civilian, isAlive: false}},
+		User{player: &MafiaPlayer{role: Mafia, isAlive: true}},
+		User{player: &MafiaPlayer{role: Mafia, isAlive: true}},
+	}
+
+	game := MafiaGame{members: &users}
+
+	assert.True(t, game.civiliansIsDead(), "Civilians should be dead.")
+}
