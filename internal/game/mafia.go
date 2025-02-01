@@ -7,7 +7,10 @@ import (
 	"math/rand"
 	"strconv"
 	"sync"
-//	"time"
+	"sync/atomic"
+	"time"
+
+	//	"time"
 
 	"gffbot/internal/text"
 
@@ -26,7 +29,7 @@ const (
 type MafiaPlayer struct {
 	lang		*string
 
-	votes		int
+	votes		int32
 
 	role		int
 	isAlive		bool
@@ -34,10 +37,10 @@ type MafiaPlayer struct {
 }
 
 func (m *MafiaPlayer) GetInfo() string {
-	return text.GetConvertToLang(*m.lang, text.RoleF, m.role)
+	return text.GetConvertToLang(*m.lang, text.RoleF, m.getRole())
 }
 
-func (m *MafiaPlayer) getRole() string {
+func (m MafiaPlayer) getRole() string {
 	en := [...]string{
 		"Civilian",
 		"Mafia",
@@ -62,6 +65,10 @@ func (m *MafiaPlayer) getRole() string {
 	}
 }
 
+func getRole(lang string, role int) string {
+	return MafiaPlayer{lang: &lang, role: role}.getRole()
+}
+
 type MafiaGame struct {
 	isStarted	*bool
 
@@ -74,6 +81,15 @@ type MafiaGame struct {
 	doctors		UsersRef
 }
 
+func (m *MafiaGame) sendAll(ctx context.Context, b Bot, key int, mafiaKey int) {
+	for _, member := range *m.members {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: member.ChatID,
+			Text: text.GetConvertToLang(member.Lang, key, getRole(member.Lang, mafiaKey)),
+		})
+	}
+}
+
 func (m *MafiaGame) startGame(ctx context.Context, b Bot) {
 	var wg sync.WaitGroup
 
@@ -84,11 +100,13 @@ func (m *MafiaGame) startGame(ctx context.Context, b Bot) {
 	for *m.isStarted {
 		m.members.sendAll(ctx, b, text.NightFalls)
 
+		time.Sleep(2 * time.Second)
+
 		// Mafia step
 
 		wg.Add(1)
 
-		m.members.sendAll(ctx, b, text.IsWakingUpF, Mafia)
+		m.sendAll(ctx, b, text.IsWakingUpF, Mafia)
 
 		m.mafiaStep(ctx, b, &wg)
 
@@ -102,49 +120,64 @@ func (m *MafiaGame) startGame(ctx context.Context, b Bot) {
 
 		wg.Wait()
 
-		m.members.sendAll(ctx, b, text.FallAsleepF, Mafia)
+		m.sendAll(ctx, b, text.FallAsleepF, Mafia)
+
+		time.Sleep(2 * time.Second)
 
 		// Doctor step
 
-		wg.Add(1)
+		m.sendAll(ctx, b, text.IsWakingUpF, Doctor)
 
-		m.members.sendAll(ctx, b, text.IsWakingUpF, Doctor)
+		time.Sleep(2 * time.Second)
 
-		for i := range m.doctors {
-			m.doctors[i].SendReplayMarkup(ctx, b,
-				m.getDoctorKeyboard(b, &wg),
-				text.MakeChoiceF, Doctor,
-				m.doctors[i].Name,
-			)
+		if !m.doctorsIsDead() {
+			wg.Add(1)
+
+			for i := range m.doctors {
+				m.doctors[i].SendReplayMarkup(ctx, b,
+					m.getDoctorKeyboard(b, &wg),
+					text.MakeChoiceF, Doctor,
+					m.doctors[i].Name,
+				)
+			}
+
+			wg.Wait()
 		}
-
-		wg.Wait()
 
 		m.members.sendAll(ctx, b, text.FallAsleepF, Doctor)
 
-		// Detective step
+		time.Sleep(2 * time.Second)
 
-		wg.Add(1)
+		// Detective step
 
 		m.members.sendAll(ctx, b, text.IsWakingUpF, Detective)
 
-		for i := range m.detectives {
-			m.detectives[i].SendReplayMarkup(ctx, b,
-				m.getDetectiveKeyboard(b, &wg),
-				text.MakeChoiceF, Detective,
-				m.detectives[i].Name,
-			)
+		time.Sleep(2 * time.Second)
+
+		if !m.detectivesIsDead() {
+			wg.Add(1)
+
+			for i := range m.detectives {
+				m.detectives[i].SendReplayMarkup(ctx, b,
+					m.getDetectiveKeyboard(b, &wg),
+					text.MakeChoiceF, Detective,
+					m.detectives[i].Name,
+				)
+			}
+			
+			wg.Wait()
 		}
 
-		wg.Wait()
+		m.sendAll(ctx, b, text.FallAsleepF, Detective)
 
-		m.members.sendAll(ctx, b, text.FallAsleepF, Detective)
+		time.Sleep(2 * time.Second)
 
 		m.members.sendAll(ctx, b, text.DayIsComing)
 
 		if m.victim.player.(*MafiaPlayer).isHealed {
 			m.members.sendAll(ctx, b, text.MafiaFailed)
 			m.victim.player.(*MafiaPlayer).isHealed = false
+			m.victim = nil
 		} else {
 			m.victim.player.(*MafiaPlayer).isAlive = false
 			m.victim.player.(*MafiaPlayer).isHealed = false
@@ -162,6 +195,10 @@ func (m *MafiaGame) startGame(ctx context.Context, b Bot) {
 			m.runVote(ctx, b, &wg)
 
 			wg.Wait()
+
+			if !*m.isStarted {
+				return
+			}
 
 			var voteResults string
 
@@ -224,7 +261,7 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 
 	for i := range *m.members {
 		(*m.members)[i].player.(*MafiaPlayer).isAlive = true
-		(*m.members)[i].SendMessage(ctx, b, 0, (*m.members)[i].player.GetInfo())
+		(*m.members)[i].SendMessage(ctx, b, text.Default, (*m.members)[i].player.GetInfo())
 	}
 }
 
@@ -267,7 +304,8 @@ func (m *MafiaGame) getDetectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyb
 		ChID, _ := strconv.Atoi(string(data))
 		victim, ok := m.members.getMember(int64(ChID))
 		if !ok {
-			log.Panic("Can't find member in lobby")
+			log.Print("Can't find member in lobby")
+			
 		}
 //		victim := (*m.members)[m.findMember(User{ChatID: int64(ChID)})]
 		if victim.player.(*MafiaPlayer).role == Mafia {
@@ -400,8 +438,12 @@ func (m *MafiaGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 			ChID, _ := strconv.Atoi(string(data))
 			player, ok := m.members.getMember(int64(ChID))
 			if !ok {
-				log.Panic("Can't find member in lobby")
+				log.Print("Can't find member in lobby")
+				*m.isStarted = false
+				m.members.sendAll(ctx, b, text.GameStoped)
+				return
 			}
+			atomic.AddInt32(&player.player.(*MafiaPlayer).votes, 1)
 			player.player.(*MafiaPlayer).votes++
 
 			b.SendMessage(ctx, &bot.SendMessageParams{
@@ -435,6 +477,24 @@ func (m *MafiaGame) mafiaIsDead() bool {
 func (m *MafiaGame) civiliansIsDead() bool {
 	for i := range *m.members {
 		if (*m.members)[i].player.(*MafiaPlayer).role != Mafia && (*m.members)[i].player.(*MafiaPlayer).isAlive {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *MafiaGame) detectivesIsDead() bool {
+	for i := range m.detectives {
+		if m.detectives[i].player.(*MafiaPlayer).isAlive {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *MafiaGame) doctorsIsDead() bool {
+	for i := range m.doctors {
+		if m.doctors[i].player.(*MafiaPlayer).isAlive {
 			return false
 		}
 	}

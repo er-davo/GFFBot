@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"gffbot/internal/text"
 
@@ -15,7 +16,7 @@ type Bot interface {
 }
 
 const (
-	MINIMUM_MEMBERS_FOR_MAFIA	= 4
+	MINIMUM_MEMBERS_FOR_MAFIA	= 3
 	MinimumMembersForBunker		= 4
 )
 
@@ -62,6 +63,11 @@ func (u *User) SendMessage(ctx context.Context, b Bot, key int, formats ...any) 
 	})
 }
 
+func (u *User) SendMessageSync(ctx context.Context, b Bot, key int, wg *sync.WaitGroup, formats ...any) (*models.Message, error) {
+	defer wg.Done()
+	return u.SendMessage(ctx, b, key, formats...)
+}
+
 func (u *User) SendReplayMarkup(ctx context.Context, b Bot, rm models.ReplyMarkup, key int, formats ...any) (*models.Message, error) {
 	return b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:			u.ChatID,
@@ -85,9 +91,15 @@ type Users		[]User
 type UsersRef	[]*User
 
 func (u *Users) sendAll(ctx context.Context, b Bot, key int, a ...any) {
+	wg := sync.WaitGroup{}
+
+	wg.Add(len(*u))
+
 	for _, player := range *u {
-		player.SendMessage(ctx, b, key, a...)
+		go player.SendMessageSync(ctx, b, key, &wg, a...)
 	}
+
+	wg.Wait()
 }
 
 func (u *Users) findMember(user User) int {
@@ -110,15 +122,6 @@ func (u *Users) getMember(chatID int64) (*User, bool) {
 	}
 	return &User{}, false
 }
-
-// func (u UsersRef) sendAll(ctx context.Context, b *bot.Bot, msg string, a ...any) {
-// 	for _, player := range u {
-// 		b.SendMessage(ctx, &bot.SendMessageParams{
-// 			ChatID: player.ChatID,
-// 			Text:   fmt.Sprintf(msg, a...),
-// 		})
-// 	}
-// }
 
 type Lobby struct {
 	LeaderID	int64

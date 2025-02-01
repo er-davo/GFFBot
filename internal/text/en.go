@@ -61,4 +61,6 @@ var En = [...]string{
 	SugestToKillF: "%s sugest to choose %s as victim",
 	AcceptedF:     "%s accepted",
 	DeclinedF:     "%s declined",
+
+	GameStoped: "Something went wrong. Game stoped, start new game.",
 }

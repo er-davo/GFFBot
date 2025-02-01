@@ -68,4 +68,6 @@ const (
 	SugestToKillF
 	AcceptedF
 	DeclinedF
+
+	GameStoped
 )
