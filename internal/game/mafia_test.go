@@ -1,10 +1,39 @@
 package game
 
 import (
+	"context"
 	"testing"
 
+	"gffbot/internal/text"
+
+	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+func TestFillRoles(t *testing.T) {
+	mockBot := new(MockBot)
+	lang := ""
+
+	us := Users{
+		User{player: &MafiaPlayer{lang: &lang}},
+		User{player: &MafiaPlayer{lang: &lang}},
+		User{player: &MafiaPlayer{lang: &lang}},
+	}
+
+	mg := MafiaGame{
+		members: &us,
+	}
+
+	mockBot.On("SendMessage", mock.Anything, mock.AnythingOfType("*bot.SendMessageParams")).
+		Return(&models.Message{Text: ""}, nil)
+
+	mg.fillRoles(context.Background(), mockBot)
+
+	assert.Equal(t, mg.mafias[0].player.(*MafiaPlayer).role, text.Mafia, "Mafia in not filled")
+	assert.Equal(t, mg.detectives[0].player.(*MafiaPlayer).role, text.Detective, "Detective in not filled")
+	assert.Equal(t, mg.doctors[0].player.(*MafiaPlayer).role, text.Doctor, "Doctor in not filled")
+}
 
 func TestKick(t *testing.T) {
 	members := Users{
@@ -23,8 +52,8 @@ func TestKick(t *testing.T) {
 
 func TestMafiaIsDead(t *testing.T) {
 	members := Users{
-		User{ChatID: 1, Name: "Player1", player: &MafiaPlayer{role: Mafia, isAlive: true}},
-		User{ChatID: 2, Name: "Player2", player: &MafiaPlayer{role: Mafia, isAlive: true}},
+		User{ChatID: 1, Name: "Player1", player: &MafiaPlayer{role: text.Mafia, isAlive: true}},
+		User{ChatID: 2, Name: "Player2", player: &MafiaPlayer{role: text.Mafia, isAlive: true}},
 	}
 	game := &MafiaGame{
 		members: &members,
@@ -70,9 +99,9 @@ func TestGetTwoMaxVotes(t *testing.T) {
 
 func TestCiviliansIsDead(t *testing.T) {
 	users := Users{
-		User{player: &MafiaPlayer{role: Civilian, isAlive: false}},
-		User{player: &MafiaPlayer{role: Mafia, isAlive: true}},
-		User{player: &MafiaPlayer{role: Mafia, isAlive: true}},
+		User{player: &MafiaPlayer{role: text.Civilian, isAlive: false}},
+		User{player: &MafiaPlayer{role: text.Mafia, isAlive: true}},
+		User{player: &MafiaPlayer{role: text.Mafia, isAlive: true}},
 	}
 
 	game := MafiaGame{members: &users}

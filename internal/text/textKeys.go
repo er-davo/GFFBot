@@ -6,7 +6,15 @@ const (
 )
 
 const (
-	Default = iota
+	Civilian = iota
+	Mafia
+	Detective
+	Doctor
+
+	GMafia
+	GBunker
+
+	Default
 
 	Join
 	Create

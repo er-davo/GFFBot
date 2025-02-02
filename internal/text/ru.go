@@ -1,6 +1,14 @@
 package text
 
 var Ru = [...]string{
+	Civilian:  "Мирный житель",
+	Mafia:     "Мафия",
+	Detective: "Шериф",
+	Doctor:    "Доктор",
+
+	GMafia:  "Мафия",
+	GBunker: "Бункер",
+
 	Default: "%s",
 
 	Join:   "Присоединиться",

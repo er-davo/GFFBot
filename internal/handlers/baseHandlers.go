@@ -12,17 +12,17 @@ import (
 	"github.com/go-telegram/ui/keyboard/inline"
 )
 
-
-
-
 func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
 		return
 	}
-	
-	index, exists := findUserInData(game.User{ChatID: update.Message.Chat.ID})
-	if exists && users[index].SendingKey {
-		u := users[index]
+
+	index, exists := users.findUserInData(game.User{ChatID: update.Message.Chat.ID})
+
+	users.Mut.Lock()
+	defer users.Mut.Unlock()
+	if exists && users.U[index].SendingKey {
+		u := users.U[index]
 
 		if u.LobbyID != 0 || u.LobbyKey != "" {
 			u.SendMessage(ctx, b, text.AlreadyInLobbyF, u.LobbyKey)
@@ -31,7 +31,9 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 		key := update.Message.Text
 
-		if lobby, exists := lobbies[key]; exists {
+		lobbies.Mut.Lock()
+		defer lobbies.Mut.Unlock()
+		if lobby, exists := lobbies.L[key]; exists {
 
 			if lobby.IsStarted {
 				u.SendMessage(ctx, b, text.LobbyGameIsStarted)
@@ -57,11 +59,11 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 			u.SendingKey = false
 			u.LobbyKey = key
 			u.LobbyID = lobby.ID
-			users[index] = u
+			users.U[index] = u
 
 			lobby.Members = append(lobby.Members, u)
 
-			lobbies[key] = lobby
+			lobbies.L[key] = lobby
 
 			u.SendMessage(ctx, b, text.PlayerJoinedLobbyF, text.PlayerJoinedLobbyF, u.GetText(text.You), newList)
 		} else {
@@ -87,13 +89,15 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		Button(text.GetConvertToLang(update.Message.From.LanguageCode, text.Create), []byte("2"), onCreateLobbySelect)
 
 	newUser := game.User{
-		ChatID:	update.Message.Chat.ID,
-		Name:	bot.EscapeMarkdown(update.Message.From.FirstName) + " " +
-					bot.EscapeMarkdown(update.Message.From.LastName),
-		Lang:	update.Message.From.LanguageCode,
+		ChatID: update.Message.Chat.ID,
+		Name: bot.EscapeMarkdown(update.Message.From.FirstName) + " " +
+			bot.EscapeMarkdown(update.Message.From.LastName),
+		Lang: update.Message.From.LanguageCode,
 	}
 
-	users = append(users, newUser)
+	users.Mut.Lock()
+	users.U = append(users.U, newUser)
+	users.Mut.Unlock()
 
 	log.Printf("New user: {Name: %s, ChatID: %d} is added", newUser.Name, newUser.ChatID)
 
@@ -101,7 +105,7 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	index, exists := findUserInData(game.User{ChatID: update.Message.Chat.ID})
+	index, exists := users.findUserInData(game.User{ChatID: update.Message.Chat.ID})
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
@@ -110,7 +114,10 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	lobby, exists := lobbies[users[index].LobbyKey]
+	lobbies.Mut.Lock()
+	lobby, exists := lobbies.L[users.U[index].LobbyKey]
+	lobbies.Mut.Unlock()
+
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
@@ -141,7 +148,9 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	lobby.IsStarted = true
 
-	lobbies[users[index].LobbyKey] = lobby
+	lobbies.Mut.Lock(); users.Mut.Lock()
+	lobbies.L[users.U[index].LobbyKey] = lobby
+	lobbies.Mut.Unlock(); users.Mut.Unlock()
 
 	// go lobby.StartGame(ctx, b) ???
 

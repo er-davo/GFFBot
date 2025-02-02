@@ -20,22 +20,6 @@ const (
 	MinimumMembersForBunker		= 4
 )
 
-const (
-	GMafia = iota
-	GBunker
-)
-
-func GetGame(lang string, game int) string {
-	switch lang {
-	case "en":
-		return [...]string{"Mafia", "Shelter"}[game]
-	case "ru":
-		return [...]string{"Мафиа", "Бункер"}[game]
-	default:
-		return [...]string{"Mafia", "Shelter"}[game]
-	}
-}
-
 type GameInterface interface {
 	startGame(ctx context.Context, b Bot)
 }
@@ -136,7 +120,7 @@ type Lobby struct {
 
 func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot) {
 	switch l.GameType {
-	case GMafia:
+	case text.GMafia:
 		l.Game = &MafiaGame{
 			isStarted:	&l.IsStarted,
 			members:	&l.Members,
@@ -146,7 +130,7 @@ func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot) {
 			l.Members[i].player = &MafiaPlayer{isAlive:	true, lang: &l.Members[i].Lang}
 		}
 
-	case GBunker:
+	case text.GBunker:
 		l.Game = &BunkerGame{
 			isStarted:	&l.IsStarted,
 			members:	&l.Members,

@@ -4,14 +4,28 @@ import (
 	"gffbot/internal/game"
 	"gffbot/internal/text"
 	"math/rand"
+	"sync"
 	"time"
 )
 
-var users []game.User
-var lobbies map[string]game.Lobby
+var users Users
+var lobbies Lobbies
 
-func findUserInData(u game.User) (int, bool) {
-	for i, user := range users {
+type Lobbies struct {
+	Mut sync.Mutex
+	L   map[string]game.Lobby
+}
+
+type Users struct {
+	Mut sync.Mutex
+	U   []game.User
+}
+
+func (us *Users) findUserInData(u game.User) (int, bool) {
+	us.Mut.Lock()
+	defer us.Mut.Unlock()
+
+	for i, user := range us.U {
 		if u.ChatID == user.ChatID {
 			return i, true
 		}
@@ -21,7 +35,7 @@ func findUserInData(u game.User) (int, bool) {
 
 func createLobbyKey() string {
 	key := make([]byte, 4)
-	
+
 	key[0] = text.LettersBytes[rand.Intn(len(text.LettersBytes))]
 	key[2] = text.LettersBytes[rand.Intn(len(text.LettersBytes))]
 	key[1] = text.DigitsBytes[rand.Intn(len(text.DigitsBytes))]
@@ -30,17 +44,7 @@ func createLobbyKey() string {
 	return string(key)
 }
 
-func lastLobbyID() int64 {
-	var m int64 = -1
-
-	for _, lobby := range lobbies {
-		m = max(m, lobby.ID)
-	}
-
-	return m
-}
-
 func init() {
-	lobbies = make(map[string]game.Lobby)
+	lobbies.L = make(map[string]game.Lobby)
 	rand.Seed(time.Now().UnixNano())
 }

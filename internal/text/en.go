@@ -1,6 +1,14 @@
 package text
 
 var En = [...]string{
+	Civilian:  "Civilian",
+	Mafia:     "Mafia",
+	Detective: "Detective",
+	Doctor:    "Doctor",
+
+	GMafia:  "Mafia",
+	GBunker: "Shelter",
+
 	Default: "%s",
 
 	Join:   "Join",
