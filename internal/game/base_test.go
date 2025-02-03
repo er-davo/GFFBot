@@ -2,8 +2,10 @@ package game
 
 import (
 	"context"
-	"gffbot/internal/text"
 	"testing"
+
+	"gffbot/internal/botmock"
+	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,7 @@ func TestGetText(t *testing.T) {
 }
 
 func TestUser_SendMessage(t *testing.T) {
-	mockBot := new(MockBot)
+	mockBot := new(botmock.MockBot)
 	u := User{}
 
 	mockBot.On("SendMessage", mock.Anything, mock.AnythingOfType("*bot.SendMessageParams")).
@@ -44,7 +46,7 @@ func TestUser_SendMessage(t *testing.T) {
 }
 
 func TestSendAll(t *testing.T) {
-	mockBot := new(MockBot)
+	mockBot := new(botmock.MockBot)
 	us := Users{
 		User{},
 		User{},
@@ -56,7 +58,7 @@ func TestSendAll(t *testing.T) {
 	mockBot.On("SendMessage", mock.Anything, mock.AnythingOfType("*bot.SendMessageParams")).
 		Times(5).Return(&models.Message{Text: ""}, nil)
 	
-	us.sendAll(context.Background(), mockBot, text.Default)
+	us.SendAll(context.Background(), mockBot, text.Default)
 
 	mockBot.AssertExpectations(t)
 }

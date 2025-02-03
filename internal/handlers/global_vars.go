@@ -1,29 +1,30 @@
 package handlers
 
 import (
-	"gffbot/internal/game"
-	"gffbot/internal/text"
 	"math/rand"
 	"sync"
 	"time"
+
+	"gffbot/internal/game"
+	"gffbot/internal/text"
 )
 
 var users Users
 var lobbies Lobbies
 
 type Lobbies struct {
-	Mut sync.Mutex
+	Mut sync.RWMutex
 	L   map[string]game.Lobby
 }
 
 type Users struct {
-	Mut sync.Mutex
+	Mut sync.RWMutex
 	U   []game.User
 }
 
-func (us *Users) findUserInData(u game.User) (int, bool) {
-	us.Mut.Lock()
-	defer us.Mut.Unlock()
+func (us *Users) FindUser(u game.User) (int, bool) {
+	us.Mut.RLock()
+	defer us.Mut.RUnlock()
 
 	for i, user := range us.U {
 		if u.ChatID == user.ChatID {
@@ -31,6 +32,24 @@ func (us *Users) findUserInData(u game.User) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (us *Users) GetUser(chatID int64) (game.User, bool) {
+	us.Mut.RLock()
+	defer us.Mut.RUnlock()
+
+	for _, user := range us.U {
+		if chatID == user.ChatID {
+			return user, true
+		}
+	}
+	return game.User{}, false
+}
+
+func (us *Users) Append(u ...game.User) {
+	us.Mut.Lock()
+	defer us.Mut.Unlock()
+	us.U = append(us.U, u...)
 }
 
 func createLobbyKey() string {

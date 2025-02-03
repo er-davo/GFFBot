@@ -16,12 +16,12 @@ type Bot interface {
 }
 
 const (
-	MINIMUM_MEMBERS_FOR_MAFIA	= 3
-	MinimumMembersForBunker		= 4
+	MINIMUM_MEMBERS_FOR_MAFIA = 3
+	MinimumMembersForBunker   = 4
 )
 
 type GameInterface interface {
-	startGame(ctx context.Context, b Bot)
+	StartGame(ctx context.Context, b Bot)
 }
 
 type Player interface {
@@ -29,21 +29,21 @@ type Player interface {
 }
 
 type User struct {
-	ChatID		int64
-	Lang		string
-	Name		string
-	
-	LobbyID		int64
-	LobbyKey	string
-	SendingKey	bool
+	ChatID int64
+	Lang   string
+	Name   string
 
-	player		Player
+	LobbyID    int64
+	LobbyKey   string
+	SendingKey bool
+
+	Player Player
 }
 
 func (u *User) SendMessage(ctx context.Context, b Bot, key int, formats ...any) (*models.Message, error) {
 	return b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:	u.ChatID,
-		Text:	u.GetText(key, formats...),
+		ChatID: u.ChatID,
+		Text:   u.GetText(key, formats...),
 	})
 }
 
@@ -54,9 +54,9 @@ func (u *User) SendMessageSync(ctx context.Context, b Bot, key int, wg *sync.Wai
 
 func (u *User) SendReplayMarkup(ctx context.Context, b Bot, rm models.ReplyMarkup, key int, formats ...any) (*models.Message, error) {
 	return b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:			u.ChatID,
-		Text:			u.GetText(key, formats...),
-		ReplyMarkup:	rm,
+		ChatID:      u.ChatID,
+		Text:        u.GetText(key, formats...),
+		ReplyMarkup: rm,
 	})
 }
 
@@ -71,10 +71,10 @@ func (u *User) GetText(key int, formats ...any) string {
 	}
 }
 
-type Users		[]User
-type UsersRef	[]*User
+type Users []User
+type UsersRef []*User
 
-func (u *Users) sendAll(ctx context.Context, b Bot, key int, a ...any) {
+func (u *Users) SendAll(ctx context.Context, b Bot, key int, a ...any) {
 	wg := sync.WaitGroup{}
 
 	wg.Add(len(*u))
@@ -86,7 +86,7 @@ func (u *Users) sendAll(ctx context.Context, b Bot, key int, a ...any) {
 	wg.Wait()
 }
 
-func (u *Users) findMember(user User) int {
+func (u *Users) FindMember(user User) int {
 	index := -1
 
 	for i, member := range *u {
@@ -98,7 +98,7 @@ func (u *Users) findMember(user User) int {
 	return index
 }
 
-func (u *Users) getMember(chatID int64) (*User, bool) {
+func (u *Users) GetMember(chatID int64) (*User, bool) {
 	for _, user := range *u {
 		if chatID == user.ChatID {
 			return &user, true
@@ -108,38 +108,40 @@ func (u *Users) getMember(chatID int64) (*User, bool) {
 }
 
 type Lobby struct {
-	LeaderID	int64
-	ID			int64
+	LeaderID int64
+	ID       int64
 
-	GameType	int
-	IsStarted	bool
-	Game		GameInterface
+	GameType  int
+	IsStarted bool
+	Game      GameInterface
 
-	Members		Users
+	Members Users
 }
+
 
 func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot) {
 	switch l.GameType {
 	case text.GMafia:
+		
 		l.Game = &MafiaGame{
-			isStarted:	&l.IsStarted,
-			members:	&l.Members,
+			IsStarted: &l.IsStarted,
+			Members:   &l.Members,
 		}
 
 		for i := range l.Members {
-			l.Members[i].player = &MafiaPlayer{isAlive:	true, lang: &l.Members[i].Lang}
+			l.Members[i].Player = &MafiaPlayer{Lang: &l.Members[i].Lang}
 		}
 
 	case text.GBunker:
 		l.Game = &BunkerGame{
-			isStarted:	&l.IsStarted,
-			members:	&l.Members,
+			IsStarted: &l.IsStarted,
+			Members:   &l.Members,
 		}
 
 		for i := range l.Members {
-			l.Members[i].player = &BunkerPlayer{lang: &l.Members[i].Lang}
+			l.Members[i].Player = &BunkerPlayer{Lang: &l.Members[i].Lang}
 		}
 	}
 
-	l.Game.startGame(ctx, b)
+	l.Game.StartGame(ctx, b)
 }

@@ -14,6 +14,18 @@ const (
 	GMafia
 	GBunker
 
+	Profession
+	BoilogicalParams
+	HealthStatus
+	Hobby
+	Phopia
+	Character
+	Skill
+	Knowledge
+	Baggage
+	ActionCard
+	ConditionCard
+
 	Default
 
 	Join

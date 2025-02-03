@@ -14,7 +14,7 @@ import (
 )
 
 func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
-	index, exists := users.findUserInData(game.User{ChatID: mes.Message.Chat.ID})
+	index, exists := users.FindUser(game.User{ChatID: mes.Message.Chat.ID})
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
@@ -36,7 +36,7 @@ func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccess
 func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 	gameType, _ := strconv.Atoi(string(data))
 
-	index, exists := users.findUserInData(game.User{ChatID: mes.Message.Chat.ID})
+	user, exists := users.GetUser(mes.Message.Chat.ID)
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
@@ -45,11 +45,8 @@ func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleM
 		return
 	}
 
-	users.Mut.Lock()
-	user := users.U[index]
-	users.Mut.Unlock()
-
 	lobbies.Mut.Lock()
+	defer lobbies.Mut.Unlock()
 	lobby, exists := lobbies.L[user.LobbyKey]
 	if !exists {
 		user.SendMessage(ctx, b, text.SomethingWentWrong)
@@ -59,13 +56,12 @@ func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleM
 
 	lobby.GameType = gameType
 	lobbies.L[user.LobbyKey] = lobby
-	lobbies.Mut.Unlock()
 
 	user.SendMessage(ctx, b, text.GameChosenF, text.GetConvertToLang(user.Lang, gameType))
 }
 
 func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
-	index, exists := users.findUserInData(game.User{ChatID: mes.Message.Chat.ID})
+	index, exists := users.FindUser(game.User{ChatID: mes.Message.Chat.ID})
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
@@ -80,10 +76,12 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 
 	var key string
 
+	lobbies.Mut.Lock()
+	defer lobbies.Mut.Unlock()
+	
 	if len(lobbies.L) != 0 {
 		for i := range 10 {
 			key = createLobbyKey()
-			lobbies.Mut.Lock()
 			if _, exists := lobbies.L[key]; exists {
 				break
 			} else if i == 9 {
@@ -92,10 +90,8 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 					ChatID: mes.Message.Chat.ID,
 					Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.CreatingLobbyError),
 				})
-				lobbies.Mut.Unlock()
 				return
 			}
-			lobbies.Mut.Unlock()
 		}
 	} else {
 		key = createLobbyKey()
@@ -108,10 +104,8 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 		Members:   []game.User{user},
 	}
 
-	lobbies.Mut.Lock()
 	lobbies.L[key] = newLobby
-	lobbies.Mut.Unlock()
-
+	
 	user.LobbyKey = key
 	users.Mut.Lock()
 	users.U[index] = user

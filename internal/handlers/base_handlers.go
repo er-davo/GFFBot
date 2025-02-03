@@ -17,7 +17,7 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	index, exists := users.findUserInData(game.User{ChatID: update.Message.Chat.ID})
+	index, exists := users.FindUser(game.User{ChatID: update.Message.Chat.ID})
 
 	users.Mut.Lock()
 	defer users.Mut.Unlock()
@@ -33,9 +33,9 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 		lobbies.Mut.Lock()
 		defer lobbies.Mut.Unlock()
-		if lobby, exists := lobbies.L[key]; exists {
+		if lob, exists := lobbies.L[key]; exists {
 
-			if lobby.IsStarted {
+			if lob.IsStarted {
 				u.SendMessage(ctx, b, text.LobbyGameIsStarted)
 				return
 			}
@@ -44,7 +44,7 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 			memebersList := []string{u.Name}
 
-			for _, memeber := range lobby.Members {
+			for _, memeber := range lob.Members {
 				memebersList = append(memebersList, memeber.Name)
 			}
 
@@ -52,18 +52,18 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 			// ==//==
 
-			for _, member := range lobby.Members {
+			for _, member := range lob.Members {
 				member.SendMessage(ctx, b, text.PlayerJoinedLobbyF, u.Name, newList)
 			}
 
 			u.SendingKey = false
 			u.LobbyKey = key
-			u.LobbyID = lobby.ID
+			u.LobbyID = lob.ID
 			users.U[index] = u
 
-			lobby.Members = append(lobby.Members, u)
+			lob.Members = append(lob.Members, u)
 
-			lobbies.L[key] = lobby
+			lobbies.L[key] = lob
 
 			u.SendMessage(ctx, b, text.PlayerJoinedLobbyF, text.PlayerJoinedLobbyF, u.GetText(text.You), newList)
 		} else {
@@ -95,9 +95,7 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		Lang: update.Message.From.LanguageCode,
 	}
 
-	users.Mut.Lock()
-	users.U = append(users.U, newUser)
-	users.Mut.Unlock()
+	users.Append(newUser)
 
 	log.Printf("New user: {Name: %s, ChatID: %d} is added", newUser.Name, newUser.ChatID)
 
@@ -105,7 +103,7 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	index, exists := users.findUserInData(game.User{ChatID: update.Message.Chat.ID})
+	currentUser, exists := users.GetUser(update.Message.Chat.ID)
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
@@ -114,9 +112,9 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	lobbies.Mut.Lock()
-	lobby, exists := lobbies.L[users.U[index].LobbyKey]
-	lobbies.Mut.Unlock()
+	lobbies.Mut.RLock()
+	lob, exists := lobbies.L[currentUser.LobbyKey]
+	lobbies.Mut.RUnlock()
 
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
@@ -126,7 +124,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	if lobby.GameType == text.GameNotSelected {
+	if lob.GameType == text.GameNotSelected {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.CantStartGame),
@@ -134,7 +132,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	if len(lobby.Members) < game.MINIMUM_MEMBERS_FOR_MAFIA {
+	if len(lob.Members) < game.MINIMUM_MEMBERS_FOR_MAFIA {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MINIMUM_MEMBERS_FOR_MAFIA),
@@ -142,17 +140,17 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	for _, member := range lobby.Members {
+	for _, member := range lob.Members {
 		member.SendMessage(ctx, b, text.GameStarted)
 	}
 
-	lobby.IsStarted = true
+	lob.IsStarted = true
 
-	lobbies.Mut.Lock(); users.Mut.Lock()
-	lobbies.L[users.U[index].LobbyKey] = lobby
-	lobbies.Mut.Unlock(); users.Mut.Unlock()
+	lobbies.Mut.Lock()
+	lobbies.L[currentUser.LobbyKey] = lob
+	lobbies.Mut.Unlock()
 
 	// go lobby.StartGame(ctx, b) ???
 
-	lobby.StartGame(ctx, b)
+	lob.StartGame(ctx, b)
 }

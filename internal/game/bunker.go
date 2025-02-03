@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"gffbot/internal/text"
 	"sync"
 
 	"github.com/go-telegram/bot"
@@ -11,8 +12,8 @@ import (
 )
 
 type BunkerPlayerFeature struct {
-	info		string
-	isHidden	bool
+	info     string
+	isHidden bool
 }
 
 func (bf *BunkerPlayerFeature) toString() string {
@@ -31,70 +32,70 @@ func (bf *BunkerPlayerFeature) view() string {
 }
 
 type BunkerPlayer struct {
-	lang				*string
+	Lang *string
 
-	profession			string
+	profession string
 
-	biologicalParams	BunkerPlayerFeature
-	healthStatus		BunkerPlayerFeature
-	hobby				BunkerPlayerFeature
-	phobia				BunkerPlayerFeature
-	character			BunkerPlayerFeature
-	skill				BunkerPlayerFeature
-	knowledge			BunkerPlayerFeature
-	baggage				BunkerPlayerFeature
+	biologicalParams BunkerPlayerFeature
+	healthStatus     BunkerPlayerFeature
+	hobby            BunkerPlayerFeature
+	phobia           BunkerPlayerFeature
+	character        BunkerPlayerFeature
+	skill            BunkerPlayerFeature
+	knowledge        BunkerPlayerFeature
+	baggage          BunkerPlayerFeature
 
-	actionCard			any
-	conditionCard		any
+	actionCard    any
+	conditionCard any
 
-	votes				int
-	isKicked			bool
+	votes    int
+	isKicked bool
 }
 
 func (bp *BunkerPlayer) GetInfo() string {
-	return "Profession:\n" +
-			bp.profession +
-			"\nBoilogical params:\n" +
-			bp.biologicalParams.toString() +
-			"\nHealth status:\n" +
-			bp.healthStatus.toString() +
-			"\nHobby:\n" +
-			bp.hobby.toString() +
-			"\nPhopia:\n" +
-			bp.phobia.toString() +
-			"\nCharacter:\n" +
-			bp.character.toString() +
-			"\nSkill:\n" +
-			bp.skill.toString() +
-			"\nKnowledge:\n" +
-			bp.knowledge.toString() +
-			"\nBaggage:\n" +
-			bp.baggage.toString() +
-			"\n\nAction card:\n" +
-			"TODO" +
-			"\nCondition card:\n" +
-			"TODO"
+	return text.GetConvertToLang(*bp.Lang, text.Profession) + ":\n" +
+		bp.profession +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.BoilogicalParams) + ":\n" +
+		bp.biologicalParams.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.HealthStatus) + ":\n" +
+		bp.healthStatus.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Hobby) + ":\n" +
+		bp.hobby.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Phopia) + ":\n" +
+		bp.phobia.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Character) + ":\n" +
+		bp.character.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Skill) + ":\n" +
+		bp.skill.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Knowledge) + ":\n" +
+		bp.knowledge.toString() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Baggage) + ":\n" +
+		bp.baggage.toString() +
+		"\n\n" + text.GetConvertToLang(*bp.Lang, text.ActionCard) + ":\n" +
+		"TODO" +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.ConditionCard) + ":\n" +
+		"TODO"
 }
 
 func (bp *BunkerPlayer) GetView() string {
-	return "Profession:\n" +
-			bp.profession +
-			"\nBoilogical params:\n" +
-			bp.biologicalParams.view() +
-			"\nHealth status:\n" +
-			bp.healthStatus.view() +
-			"\nHobby:\n" +
-			bp.hobby.view() +
-			"\nPhopia:\n" +
-			bp.phobia.view() +
-			"\nCharacter:\n" +
-			bp.character.view() +
-			"\nSkill:\n" +
-			bp.skill.view() +
-			"\nKnowledge:\n" +
-			bp.knowledge.view() +
-			"\nBaggage:\n" +
-			bp.baggage.view()
+	return text.GetConvertToLang(*bp.Lang, text.Profession) + ":\n" +
+		bp.profession +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.BoilogicalParams) + ":\n" +
+		bp.biologicalParams.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.HealthStatus) + ":\n" +
+		bp.healthStatus.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Hobby) + ":\n" +
+		bp.hobby.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Phopia) + ":\n" +
+		bp.phobia.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Character) + ":\n" +
+		bp.character.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Skill) + ":\n" +
+		bp.skill.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Knowledge) + ":\n" +
+		bp.knowledge.view() +
+		"\n" + text.GetConvertToLang(*bp.Lang, text.Baggage) + ":\n" +
+		bp.baggage.view()
 }
 
 func (bp *BunkerPlayer) getKeyboard(b Bot, onSelect inline.OnSelect) *inline.Keyboard {
@@ -129,19 +130,19 @@ func (bp *BunkerPlayer) getKeyboard(b Bot, onSelect inline.OnSelect) *inline.Key
 }
 
 type BunkerGame struct {
-	disastre	string
-	isStarted	*bool
-    members     *Users
+	disastre  string
+	IsStarted *bool
+	Members   *Users
 }
 
-func (bg *BunkerGame) startGame(ctx context.Context, b Bot) {
+func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
 	// fill roles and disastre
 
 	var wg sync.WaitGroup
 
-	countOfMembers := len(*bg.members)
+	countOfMembers := len(*bg.Members)
 
-	for *bg.isStarted {
+	for *bg.IsStarted {
 		// open hidden features
 		bg.openHiddenFeatures(ctx, b, &wg)
 
@@ -157,11 +158,11 @@ func (bg *BunkerGame) startGame(ctx context.Context, b Bot) {
 }
 
 func (bg *BunkerGame) openHiddenFeatures(ctx context.Context, b Bot, wg *sync.WaitGroup) {
-	for i := range *bg.members {
-		if (*bg.members)[i].player.(*BunkerPlayer).isKicked {
+	for i := range *bg.Members {
+		if (*bg.Members)[i].Player.(*BunkerPlayer).isKicked {
 			continue
 		}
-		
+
 		memberIndex := i
 
 		onSelect := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
@@ -169,52 +170,52 @@ func (bg *BunkerGame) openHiddenFeatures(ctx context.Context, b Bot, wg *sync.Wa
 
 			switch string(data) {
 			case "1":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).biologicalParams.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).biologicalParams.isHidden = false
 			case "2":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).healthStatus.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).healthStatus.isHidden = false
 			case "3":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).hobby.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).hobby.isHidden = false
 			case "4":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).phobia.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).phobia.isHidden = false
 			case "5":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).character.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).character.isHidden = false
 			case "6":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).skill.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).skill.isHidden = false
 			case "7":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).knowledge.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).knowledge.isHidden = false
 			case "8":
-				(*bg.members)[memberIndex].player.(*BunkerPlayer).baggage.isHidden = false
+				(*bg.Members)[memberIndex].Player.(*BunkerPlayer).baggage.isHidden = false
 			default:
 			}
 		}
-		
+
 		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:			(*bg.members)[i].ChatID,
-			Text:			(*bg.members)[i].player.GetInfo(),
-			ReplyMarkup:	(*bg.members)[i].player.(*BunkerPlayer).getKeyboard(b, onSelect),
+			ChatID:      (*bg.Members)[i].ChatID,
+			Text:        (*bg.Members)[i].Player.GetInfo(),
+			ReplyMarkup: (*bg.Members)[i].Player.(*BunkerPlayer).getKeyboard(b, onSelect),
 		})
 	}
 }
 
 func (bg *BunkerGame) sendSliders(ctx context.Context, b Bot, wg *sync.WaitGroup) {
-	for _, member := range *bg.members {
-		if member.player.(*BunkerPlayer).isKicked {
+	for _, member := range *bg.Members {
+		if member.Player.(*BunkerPlayer).isKicked {
 			continue
 		}
 
-		slides := []slider.Slide{{Text: member.player.GetInfo()}}
+		slides := []slider.Slide{{Text: member.Player.GetInfo()}}
 		membersList := []int64{}
 
-		for _, other := range *bg.members {
-			if member.ChatID == other.ChatID || other.player.(*BunkerPlayer).isKicked {
+		for _, other := range *bg.Members {
+			if member.ChatID == other.ChatID || other.Player.(*BunkerPlayer).isKicked {
 				continue
 			}
 
-			slides = append(slides, slider.Slide{Text: other.Name + "\n" + other.player.(*BunkerPlayer).GetView()})
+			slides = append(slides, slider.Slide{Text: other.Name + "\n" + other.Player.(*BunkerPlayer).GetView()})
 			membersList = append(membersList, other.ChatID)
 		}
 
-		onVoteSelect := func(ctx context.Context, b *bot.Bot, message models.MaybeInaccessibleMessage, item int)  {
+		onVoteSelect := func(ctx context.Context, b *bot.Bot, message models.MaybeInaccessibleMessage, item int) {
 			defer wg.Done()
 
 			// TODO
@@ -222,10 +223,10 @@ func (bg *BunkerGame) sendSliders(ctx context.Context, b Bot, wg *sync.WaitGroup
 				// message: can't vote for yourself!
 				return
 			}
-			
-			(*bg.members)[bg.members.findMember(
+
+			(*bg.Members)[bg.Members.FindMember(
 				User{ChatID: message.Message.Chat.ID},
-			)].player.(*BunkerPlayer).votes++
+			)].Player.(*BunkerPlayer).votes++
 
 			// TODO
 			// message: voted for %s

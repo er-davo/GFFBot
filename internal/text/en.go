@@ -9,6 +9,18 @@ var En = [...]string{
 	GMafia:  "Mafia",
 	GBunker: "Shelter",
 
+	Profession:       "Profession",
+	BoilogicalParams: "Boilogical params",
+	HealthStatus:     "Health status",
+	Hobby:            "Hobby",
+	Phopia:           "Phopia",
+	Character:        "Character",
+	Skill:            "Skill",
+	Knowledge:        "Knowledge",
+	Baggage:          "Baggage",
+	ActionCard:       "Action card",
+	ConditionCard:    "Condition card",
+
 	Default: "%s",
 
 	Join:   "Join",
