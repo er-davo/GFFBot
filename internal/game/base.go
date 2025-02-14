@@ -17,15 +17,15 @@ type Bot interface {
 
 const (
 	MINIMUM_MEMBERS_FOR_MAFIA = 3
-	MinimumMembersForBunker   = 4
+	MinimumMembersForBunker   = 3
 )
 
-type GameInterface interface {
+type GameStarter interface {
 	StartGame(ctx context.Context, b Bot)
 }
 
 type Player interface {
-	GetInfo() string
+	Info() string
 }
 
 type User struct {
@@ -76,11 +76,13 @@ type UsersRef []*User
 
 func (u *Users) SendAll(ctx context.Context, b Bot, key int, a ...any) {
 	wg := sync.WaitGroup{}
-
 	wg.Add(len(*u))
 
 	for _, player := range *u {
-		go player.SendMessageSync(ctx, b, key, &wg, a...)
+		go func() {
+			defer wg.Done()
+			player.SendMessage(ctx, b, key, a...)
+		}()
 	}
 
 	wg.Wait()
@@ -113,16 +115,15 @@ type Lobby struct {
 
 	GameType  int
 	IsStarted bool
-	Game      GameInterface
+	Game      GameStarter
 
 	Members Users
 }
 
-
 func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot) {
 	switch l.GameType {
 	case text.GMafia:
-		
+
 		l.Game = &MafiaGame{
 			IsStarted: &l.IsStarted,
 			Members:   &l.Members,

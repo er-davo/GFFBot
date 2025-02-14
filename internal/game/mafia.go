@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -19,10 +19,6 @@ import (
 	"github.com/go-telegram/ui/keyboard/inline"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 type MafiaPlayer struct {
 	Lang *string
 
@@ -33,12 +29,12 @@ type MafiaPlayer struct {
 	isHealed bool
 }
 
-func (m *MafiaPlayer) GetInfo() string {
-	return text.GetConvertToLang(*m.Lang, text.RoleF, m.getRole())
+func (m *MafiaPlayer) Info() string {
+	return text.ConvertToLang(*m.Lang, text.RoleF, m.getRole())
 }
 
 func (m MafiaPlayer) getRole() string {
-	return text.GetConvertToLang(*m.Lang, m.role)
+	return text.ConvertToLang(*m.Lang, m.role)
 }
 
 type MafiaGame struct {
@@ -57,7 +53,7 @@ type MafiaGame struct {
 func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 	var wg sync.WaitGroup
 
-	countOfMembers := len(*m.Members)
+	countOfAliveMembers := len(*m.Members)
 
 	m.fillRoles(ctx, b)
 
@@ -68,19 +64,11 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 
 		// Mafia step
 
-		wg.Add(1)
+		wg.Add(1) // check !!!
 
 		m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Mafia)
 
 		m.mafiaStep(ctx, b, &wg)
-
-		// for i := range m.mafias {
-		// 	m.mafias[i].SendReplayMarkup(ctx, b,
-		// 		m.getMafiaKeyboard(b, &wg),
-		// 		text.MakeChoiceF, Mafia,
-		// 		m.mafias[i].Name,
-		// 	)
-		// }
 
 		wg.Wait()
 
@@ -99,7 +87,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 
 			for i := range m.doctors {
 				m.doctors[i].SendReplayMarkup(ctx, b,
-					m.getDoctorKeyboard(b, &wg),
+					m.doctorKeyboard(b, &wg),
 					text.MakeChoiceF, text.Doctor,
 					m.doctors[i].Name,
 				)
@@ -123,7 +111,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 
 			for i := range m.detectives {
 				m.detectives[i].SendReplayMarkup(ctx, b,
-					m.getDetectiveKeyboard(b, &wg),
+					m.detectiveKeyboard(b, &wg),
 					text.MakeChoiceF, text.Detective,
 					m.detectives[i].Name,
 				)
@@ -149,12 +137,14 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 			m.victim = nil
 
 			m.Members.SendAll(ctx, b, text.MafiaSuccessF, m.victim.Name)
+
+			countOfAliveMembers--
 		}
 
 		// Voting session
 
 		for {
-			wg.Add(countOfMembers)
+			wg.Add(countOfAliveMembers)
 
 			m.runVote(ctx, b, &wg)
 
@@ -175,7 +165,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 
 			m.Members.SendAll(ctx, b, text.VotingResultsF, voteResults)
 
-			voteFirstMax, voteSecondMax := m.getTwoMaxVotes()
+			voteFirstMax, voteSecondMax := m.twoMaxVotes()
 
 			if voteFirstMax.Player.(*MafiaPlayer).votes == voteSecondMax.Player.(*MafiaPlayer).votes {
 				m.clearVotes()
@@ -184,6 +174,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 			} else {
 				m.Members.SendAll(ctx, b, text.VoteKickF, voteFirstMax.Name, voteFirstMax.Player.(*MafiaPlayer).role)
 				m.kick(voteFirstMax)
+				countOfAliveMembers--
 				break
 			}
 		}
@@ -210,10 +201,10 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 	}
 
 	for i := range mSize {
-		tofill = rand.Intn(size)
+		tofill = rand.IntN(size)
 
 		for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
-			tofill = rand.Intn(size)
+			tofill = rand.IntN(size)
 		}
 
 		m.mafias = append(m.mafias, &(*m.Members)[tofill])
@@ -221,10 +212,10 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 	}
 
 	for i := range 1 {
-		tofill = rand.Intn(size)
+		tofill = rand.IntN(size)
 
 		for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
-			tofill = rand.Intn(size)
+			tofill = rand.IntN(size)
 		}
 
 		m.detectives = append(m.detectives, &(*m.Members)[tofill])
@@ -232,10 +223,10 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 	}
 
 	for i := range 1 {
-		tofill = rand.Intn(size)
+		tofill = rand.IntN(size)
 
 		for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
-			tofill = rand.Intn(size)
+			tofill = rand.IntN(size)
 		}
 
 		m.doctors = append(m.doctors, &(*m.Members)[tofill])
@@ -244,11 +235,11 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 
 	for i := range *m.Members {
 		(*m.Members)[i].Player.(*MafiaPlayer).isAlive = true
-		(*m.Members)[i].SendMessage(ctx, b, text.Default, (*m.Members)[i].Player.GetInfo())
+		(*m.Members)[i].SendMessage(ctx, b, text.Default, (*m.Members)[i].Player.Info())
 	}
 }
 
-func (m *MafiaGame) getDoctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
+func (m *MafiaGame) doctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 
 	onVictimSelect := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 		defer wg.Done()
@@ -263,7 +254,7 @@ func (m *MafiaGame) getDoctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboar
 
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.HealedF, player.Name),
+			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.HealedF, player.Name),
 		})
 
 	}
@@ -279,7 +270,7 @@ func (m *MafiaGame) getDoctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboar
 	return kb
 }
 
-func (m *MafiaGame) getDetectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
+func (m *MafiaGame) detectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 	onVictimSelect := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 		defer wg.Done()
 
@@ -293,12 +284,12 @@ func (m *MafiaGame) getDetectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyb
 		if victim.Player.(*MafiaPlayer).role == text.Mafia {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.IsMafiaF, victim.Name),
+				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.IsMafiaF, victim.Name),
 			})
 		} else {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.IsNotMafiaF, victim.Name),
+				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.IsNotMafiaF, victim.Name),
 			})
 		}
 	}
@@ -314,7 +305,7 @@ func (m *MafiaGame) getDetectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyb
 	return kb
 }
 
-func (m *MafiaGame) getMafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
+func (m *MafiaGame) mafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 	onVictimSugest := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 		onYes := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 			defer wg.Done()
@@ -352,8 +343,8 @@ func (m *MafiaGame) getMafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard
 			if mes.Message.Chat.ID != maf.ChatID {
 				kb := inline.New(b).
 					Row().
-					Button(text.GetConvertToLang(mes.Message.From.LanguageCode, text.Yes), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onYes).
-					Button(text.GetConvertToLang(mes.Message.From.LanguageCode, text.No), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onNo)
+					Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.Yes), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onYes).
+					Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.No), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onNo)
 
 				maf.SendReplayMarkup(ctx, b, kb, text.SugestToKillF, whoSugest.Name, probVictim.Name)
 			}
@@ -368,7 +359,7 @@ func (m *MafiaGame) getMafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard
 
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.ChosenToKillF, m.victim.Name),
+			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.ChosenToKillF, m.victim.Name),
 		})
 	}
 
@@ -401,7 +392,7 @@ func (m *MafiaGame) mafiaStep(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 
 		for i := range m.mafias {
 			m.mafias[i].SendReplayMarkup(ctx, b,
-				m.getMafiaKeyboard(b, &innerWg),
+				m.mafiaKeyboard(b, &innerWg),
 				text.MakeChoiceF, m.mafias[i].Player.(*MafiaPlayer).getRole(),
 				m.mafias[i].Name,
 			)
@@ -428,7 +419,7 @@ func (m *MafiaGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.VotedF, player.Name),
+				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.VotedF, player.Name),
 			})
 		}
 
@@ -481,7 +472,7 @@ func (m *MafiaGame) doctorsIsDead() bool {
 	return true
 }
 
-func (m *MafiaGame) getTwoMaxVotes() (User, User) {
+func (m *MafiaGame) twoMaxVotes() (User, User) {
 	maxFirst := User{Player: &MafiaPlayer{votes: 0}}
 	maxSecond := maxFirst
 

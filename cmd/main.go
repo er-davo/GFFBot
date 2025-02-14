@@ -20,7 +20,7 @@ func main() {
 		bot.WithDefaultHandler(handlers.DefaultHandler),
 	}
 
-	gffbot, err := bot.New(config.Get().TelegramBotApiToken, opts...)
+	gffbot, err := bot.New(config.Load().TelegramBotApiToken, opts...)
 	if err != nil {
 		log.Panic(err)
 	}

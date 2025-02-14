@@ -18,7 +18,7 @@ func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccess
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
+			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
 		})
 		return
 	}
@@ -29,7 +29,7 @@ func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccess
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: mes.Message.Chat.ID,
-		Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.SendKey),
+		Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.SendKey),
 	})
 }
 
@@ -40,7 +40,7 @@ func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleM
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
+			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
 		})
 		return
 	}
@@ -57,7 +57,7 @@ func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleM
 	lobby.GameType = gameType
 	lobbies.L[user.LobbyKey] = lobby
 
-	user.SendMessage(ctx, b, text.GameChosenF, text.GetConvertToLang(user.Lang, gameType))
+	user.SendMessage(ctx, b, text.GameChosenF, text.ConvertToLang(user.Lang, gameType))
 }
 
 func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
@@ -65,7 +65,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
+			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.CantFindUser),
 		})
 		return
 	}
@@ -78,7 +78,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 
 	lobbies.Mut.Lock()
 	defer lobbies.Mut.Unlock()
-	
+
 	if len(lobbies.L) != 0 {
 		for i := range 10 {
 			key = createLobbyKey()
@@ -88,7 +88,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 				log.Printf("Somefting went wrong on creating new lobby. Current count of lobbies is: %d", len(lobbies.L))
 				b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: mes.Message.Chat.ID,
-					Text:   text.GetConvertToLang(mes.Message.From.LanguageCode, text.CreatingLobbyError),
+					Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.CreatingLobbyError),
 				})
 				return
 			}
@@ -105,7 +105,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 	}
 
 	lobbies.L[key] = newLobby
-	
+
 	user.LobbyKey = key
 	users.Mut.Lock()
 	users.U[index] = user
@@ -113,13 +113,13 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 
 	kb := inline.New(b).
 		Row().
-		Button(text.GetConvertToLang(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia)), onGameSelect).
+		Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia)), onGameSelect).
 		Row().
-		Button(text.GetConvertToLang(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker)), onGameSelect)
+		Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker)), onGameSelect)
 
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      mes.Message.Chat.ID,
-		Text:        text.GetConvertToLang(mes.Message.From.LanguageCode, text.KeyCreatedF, key),
+		Text:        text.ConvertToLang(mes.Message.From.LanguageCode, text.KeyCreatedF, key),
 		ReplyMarkup: kb,
 	})
 

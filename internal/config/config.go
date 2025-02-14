@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"sync"
 
 	"github.com/joho/godotenv"
 )
@@ -19,12 +20,18 @@ type Config struct {
 	PathToLogFile       string
 }
 
-func Get() *Config {
-	return &Config{
-		TelegramBotApiToken: getEnvStr("BOT_API_TOKEN"),
-	}
+var (
+	config Config
+	once   sync.Once
+)
+
+func Load() *Config {
+	once.Do(func() {
+		config.TelegramBotApiToken = loadEnvStr("BOT_API_TOKEN")	
+	})
+	return &config
 }
 
-func getEnvStr(key string) string {
+func loadEnvStr(key string) string {
 	return os.Getenv(key)
 }

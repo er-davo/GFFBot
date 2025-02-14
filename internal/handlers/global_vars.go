@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"sync"
-	"time"
 
 	"gffbot/internal/game"
 	"gffbot/internal/text"
@@ -55,15 +54,14 @@ func (us *Users) Append(u ...game.User) {
 func createLobbyKey() string {
 	key := make([]byte, 4)
 
-	key[0] = text.LettersBytes[rand.Intn(len(text.LettersBytes))]
-	key[2] = text.LettersBytes[rand.Intn(len(text.LettersBytes))]
-	key[1] = text.DigitsBytes[rand.Intn(len(text.DigitsBytes))]
-	key[3] = text.DigitsBytes[rand.Intn(len(text.DigitsBytes))]
+	key[0] = text.LettersBytes[rand.IntN(len(text.LettersBytes))]
+	key[2] = text.LettersBytes[rand.IntN(len(text.LettersBytes))]
+	key[1] = text.DigitsBytes[rand.IntN(len(text.DigitsBytes))]
+	key[3] = text.DigitsBytes[rand.IntN(len(text.DigitsBytes))]
 
 	return string(key)
 }
 
 func init() {
 	lobbies.L = make(map[string]game.Lobby)
-	rand.Seed(time.Now().UnixNano())
 }

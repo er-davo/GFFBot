@@ -5,6 +5,7 @@ const (
 	DigitsBytes  = "1234567890"
 )
 
+// Base and Mafia roles
 const (
 	Civilian = iota
 	Mafia
@@ -13,18 +14,6 @@ const (
 
 	GMafia
 	GBunker
-
-	Profession
-	BoilogicalParams
-	HealthStatus
-	Hobby
-	Phopia
-	Character
-	Skill
-	Knowledge
-	Baggage
-	ActionCard
-	ConditionCard
 
 	Default
 

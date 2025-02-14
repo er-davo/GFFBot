@@ -15,7 +15,7 @@ import (
 func TestFillRoles(t *testing.T) {
 	mockBot := new(botmock.MockBot)
 	lang := ""
-
+	
 	us := Users{
 		User{Player: &MafiaPlayer{Lang: &lang}},
 		User{Player: &MafiaPlayer{Lang: &lang}},
@@ -84,7 +84,7 @@ func TestGetTwoMaxVotes(t *testing.T) {
 
 	game := MafiaGame{Members: &users}
 
-	maxFirst, maxSecond := game.getTwoMaxVotes()
+	maxFirst, maxSecond := game.twoMaxVotes()
 
 	assert.Equal(t, users[0].Player, maxFirst.Player, "First max vote player should be users[0].")
 	assert.Equal(t, users[2].Player, maxSecond.Player, "Second max vote player should be users[2].")
@@ -92,7 +92,7 @@ func TestGetTwoMaxVotes(t *testing.T) {
 	users[1].Player.(*MafiaPlayer).votes = 5
 	users[0].Player.(*MafiaPlayer).votes = 0
 
-	maxFirst, maxSecond = game.getTwoMaxVotes()
+	maxFirst, maxSecond = game.twoMaxVotes()
 
 	assert.Equal(t, users[1].Player, maxFirst.Player, "First max vote player should be users[1].")
 	assert.Equal(t, users[2].Player, maxSecond.Player, "Second max vote player should be users[2].")

@@ -65,7 +65,7 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 			lobbies.L[key] = lob
 
-			u.SendMessage(ctx, b, text.PlayerJoinedLobbyF, text.PlayerJoinedLobbyF, u.GetText(text.You), newList)
+			u.SendMessage(ctx, b, text.PlayerJoinedLobbyF, u.GetText(text.You), newList)
 		} else {
 			u.SendMessage(ctx, b, text.LobbyNotExists)
 			return
@@ -76,7 +76,7 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	} else {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.UnknownCommand),
+			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.UnknownCommand),
 		})
 	}
 }
@@ -84,9 +84,9 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	kb := inline.New(b).
 		Row().
-		Button(text.GetConvertToLang(update.Message.From.LanguageCode, text.Join), []byte("1"), onJoinLobbySelect).
+		Button(text.ConvertToLang(update.Message.From.LanguageCode, text.Join), []byte("1"), onJoinLobbySelect).
 		Row().
-		Button(text.GetConvertToLang(update.Message.From.LanguageCode, text.Create), []byte("2"), onCreateLobbySelect)
+		Button(text.ConvertToLang(update.Message.From.LanguageCode, text.Create), []byte("2"), onCreateLobbySelect)
 
 	newUser := game.User{
 		ChatID: update.Message.Chat.ID,
@@ -107,7 +107,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
+			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
 		})
 		return
 	}
@@ -119,7 +119,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
+			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
 		})
 		return
 	}
@@ -127,7 +127,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if lob.GameType == text.GameNotSelected {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.CantStartGame),
+			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.CantStartGame),
 		})
 		return
 	}
@@ -135,7 +135,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if len(lob.Members) < game.MINIMUM_MEMBERS_FOR_MAFIA {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.GetConvertToLang(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MINIMUM_MEMBERS_FOR_MAFIA),
+			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MINIMUM_MEMBERS_FOR_MAFIA),
 		})
 		return
 	}
