@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"sync"
 
@@ -11,13 +10,13 @@ import (
 func init() {
 	err := godotenv.Load("../env/.env")
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 }
 
 type Config struct {
 	TelegramBotApiToken string
-	PathToLogFile       string
+	LogFilePath         string `json:"log_file_path"`
 }
 
 var (
@@ -27,7 +26,7 @@ var (
 
 func Load() *Config {
 	once.Do(func() {
-		config.TelegramBotApiToken = loadEnvStr("BOT_API_TOKEN")	
+		config.TelegramBotApiToken = loadEnvStr("BOT_API_TOKEN")
 	})
 	return &config
 }

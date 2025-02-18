@@ -2,15 +2,21 @@ package handlers
 
 import (
 	"context"
-	"gffbot/internal/game"
-	"gffbot/internal/text"
-	"log"
 	"strings"
+
+	"gffbot/internal/game"
+	"gffbot/internal/logger"
+	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/go-telegram/ui/keyboard/inline"
+	"go.uber.org/zap"
 )
+
+func init() {
+	logger.Init()
+}
 
 func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
@@ -68,25 +74,24 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 			u.SendMessage(ctx, b, text.PlayerJoinedLobbyF, u.GetText(text.You), newList)
 		} else {
 			u.SendMessage(ctx, b, text.LobbyNotExists)
+			logger.Log.Error("lobby does not exists", zap.String("lobby_key", u.LobbyKey), zap.Int64("chat_id", u.ChatID))
 			return
 		}
-
-		//		users[index] = u
-
 	} else {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.UnknownCommand),
+			Text:   text.Convert(update.Message.From.LanguageCode, text.UnknownCommand),
 		})
+		logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
 	}
 }
 
 func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	kb := inline.New(b).
 		Row().
-		Button(text.ConvertToLang(update.Message.From.LanguageCode, text.Join), []byte("1"), onJoinLobbySelect).
+		Button(text.Convert(update.Message.From.LanguageCode, text.Join), []byte("1"), onJoinLobbySelect).
 		Row().
-		Button(text.ConvertToLang(update.Message.From.LanguageCode, text.Create), []byte("2"), onCreateLobbySelect)
+		Button(text.Convert(update.Message.From.LanguageCode, text.Create), []byte("2"), onCreateLobbySelect)
 
 	newUser := game.User{
 		ChatID: update.Message.Chat.ID,
@@ -97,7 +102,7 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	users.Append(newUser)
 
-	log.Printf("New user: {Name: %s, ChatID: %d} is added", newUser.Name, newUser.ChatID)
+	logger.Log.Info("new user added", zap.String("name", newUser.Name), zap.Int64("chat_id", newUser.ChatID))
 
 	newUser.SendReplayMarkup(ctx, b, kb, text.StartCommandF, newUser.Name)
 }
@@ -107,8 +112,9 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
+			Text:   text.Convert(update.Message.From.LanguageCode, text.SomethingWentWrong),
 		})
+		logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
 		return
 	}
 
@@ -119,24 +125,51 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if !exists {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.SomethingWentWrong),
+			Text:   text.Convert(update.Message.From.LanguageCode, text.SomethingWentWrong),
 		})
+		logger.Log.Error("lobby does not exists", zap.String("lobby_key", currentUser.LobbyKey), zap.Int64("chat_id", currentUser.ChatID))
 		return
 	}
 
-	if lob.GameType == text.GameNotSelected {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.CantStartGame),
-		})
-		return
-	}
+	switch lob.GameType {
+	case text.GMafia:
+		if len(lob.Members) < game.MinimumMembersForMafia {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   text.Convert(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MinimumMembersForMafia),
+			})
+			return
+		}
 
-	if len(lob.Members) < game.MINIMUM_MEMBERS_FOR_MAFIA {
+		if len(lob.Members) > game.MaximumMembersForMafia {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   text.Convert(update.Message.From.LanguageCode, text.MaximumMembersF, game.MaximumMembersForMafia),
+			})
+			return
+		}
+	case text.GBunker:
+		if len(lob.Members) < game.MinimumMembersForBunker {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   text.Convert(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MinimumMembersForBunker),
+			})
+			return
+		}
+
+		if len(lob.Members) > game.MaximumMembersForBunker {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   text.Convert(update.Message.From.LanguageCode, text.MaximumMembersF, game.MaximumMembersForBunker),
+			})
+			return
+		}
+	default:
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   text.ConvertToLang(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MINIMUM_MEMBERS_FOR_MAFIA),
+			Text:   text.Convert(update.Message.From.LanguageCode, text.CantStartGame),
 		})
+		logger.Log.Info("GameType is not selected", zap.String("lobby_key", currentUser.LobbyKey))
 		return
 	}
 
@@ -151,6 +184,8 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	lobbies.Mut.Unlock()
 
 	// go lobby.StartGame(ctx, b) ???
+
+	logger.Log.Info("new game started [NEED LOG CHANGES]", zap.Int("game_type", lob.GameType))
 
 	lob.StartGame(ctx, b)
 }

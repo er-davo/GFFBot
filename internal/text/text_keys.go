@@ -51,6 +51,7 @@ const (
 	CantStartGame
 
 	AtLeastMembersF
+	MaximumMembersF
 	RoleF
 
 	KeyCreatedF

@@ -3,7 +3,6 @@ package game
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"strconv"
 	"sync"
@@ -12,11 +11,13 @@ import (
 
 	//	"time"
 
+	"gffbot/internal/logger"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/go-telegram/ui/keyboard/inline"
+	"go.uber.org/zap"
 )
 
 type MafiaPlayer struct {
@@ -30,11 +31,11 @@ type MafiaPlayer struct {
 }
 
 func (m *MafiaPlayer) Info() string {
-	return text.ConvertToLang(*m.Lang, text.RoleF, m.getRole())
+	return text.Convert(*m.Lang, text.RoleF, m.getRole())
 }
 
 func (m MafiaPlayer) getRole() string {
-	return text.ConvertToLang(*m.Lang, m.role)
+	return text.Convert(*m.Lang, m.role)
 }
 
 type MafiaGame struct {
@@ -247,14 +248,19 @@ func (m *MafiaGame) doctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 		ChID, _ := strconv.Atoi(string(data))
 		player, ok := m.Members.GetMember(int64(ChID))
 		if !ok {
-			log.Panic("Can't find member in lobby")
+			logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: mes.Message.Chat.ID,
+				Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+			})
+			return
 		}
 
 		player.Player.(*MafiaPlayer).isHealed = true
 
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.HealedF, player.Name),
+			Text:   text.Convert(mes.Message.From.LanguageCode, text.HealedF, player.Name),
 		})
 
 	}
@@ -277,19 +283,23 @@ func (m *MafiaGame) detectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboar
 		ChID, _ := strconv.Atoi(string(data))
 		victim, ok := m.Members.GetMember(int64(ChID))
 		if !ok {
-			log.Print("Can't find member in lobby")
-
+			logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: mes.Message.Chat.ID,
+				Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+			})
+			return
 		}
 
 		if victim.Player.(*MafiaPlayer).role == text.Mafia {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.IsMafiaF, victim.Name),
+				Text:   text.Convert(mes.Message.From.LanguageCode, text.IsMafiaF, victim.Name),
 			})
 		} else {
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.IsNotMafiaF, victim.Name),
+				Text:   text.Convert(mes.Message.From.LanguageCode, text.IsNotMafiaF, victim.Name),
 			})
 		}
 	}
@@ -343,8 +353,8 @@ func (m *MafiaGame) mafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 			if mes.Message.Chat.ID != maf.ChatID {
 				kb := inline.New(b).
 					Row().
-					Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.Yes), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onYes).
-					Button(text.ConvertToLang(mes.Message.From.LanguageCode, text.No), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onNo)
+					Button(text.Convert(mes.Message.From.LanguageCode, text.Yes), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onYes).
+					Button(text.Convert(mes.Message.From.LanguageCode, text.No), []byte(fmt.Sprintf("%d", probVictim.ChatID)), onNo)
 
 				maf.SendReplayMarkup(ctx, b, kb, text.SugestToKillF, whoSugest.Name, probVictim.Name)
 			}
@@ -359,7 +369,7 @@ func (m *MafiaGame) mafiaKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: mes.Message.Chat.ID,
-			Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.ChosenToKillF, m.victim.Name),
+			Text:   text.Convert(mes.Message.From.LanguageCode, text.ChosenToKillF, m.victim.Name),
 		})
 	}
 
@@ -407,10 +417,14 @@ func (m *MafiaGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 		onVoteSelect := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 			defer wg.Done()
 
-			ChID, _ := strconv.Atoi(string(data))
+			ChID, _ := strconv.Atoi(fmt.Sprintf("%d", data))
 			player, ok := m.Members.GetMember(int64(ChID))
 			if !ok {
-				log.Print("Can't find member in lobby")
+				logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: mes.Message.Chat.ID,
+					Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+				})
 				*m.IsStarted = false
 				m.Members.SendAll(ctx, b, text.GameStoped)
 				return
@@ -419,7 +433,7 @@ func (m *MafiaGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text:   text.ConvertToLang(mes.Message.From.LanguageCode, text.VotedF, player.Name),
+				Text:   text.Convert(mes.Message.From.LanguageCode, text.VotedF, player.Name),
 			})
 		}
 

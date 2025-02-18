@@ -3,18 +3,19 @@ package game
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand/v2"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
+	"gffbot/internal/logger"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/go-telegram/ui/keyboard/inline"
 	"github.com/go-telegram/ui/paginator"
-	"github.com/go-telegram/ui/slider"
+	"go.uber.org/zap"
 )
 
 type BunkerPlayerFeature struct {
@@ -59,8 +60,8 @@ type BunkerPlayer struct {
 	isKicked bool
 }
 
+// Still TODO
 func (bp *BunkerPlayer) fill() {
-	// Still TODO
 
 	//	luckyFeatures := 4
 
@@ -252,23 +253,23 @@ func (bg *BunkerGame) send(ctx context.Context, b Bot, msg string, a ...any) {
 }
 
 var toKickData = [...][5]int{
-	{0, 0, 0, 1, 2}, // 3
-	{0, 0, 1, 1, 2}, // 4 players
-	{0, 1, 1, 1, 2}, // 5
-	{0, 1, 1, 1, 3}, // 6
-	{1, 1, 1, 1, 3}, // 7
-	{1, 1, 1, 1, 4}, // 8
-	{1, 1, 1, 2, 4}, // 9
-	{1, 1, 1, 2, 5}, // 10
-	{1, 1, 2, 2, 5}, // 11
-	{1, 1, 2, 2, 6}, // 12
-	{1, 2, 2, 2, 6}, // 13
-	{1, 2, 2, 2, 7}, // 14
-	{2, 2, 2, 2, 7}, // 15
-	{2, 2, 2, 2, 8}, // 16
-	{2, 2, 2, 3, 8}, // 17
-	{2, 2, 2, 3, 9}, // 18
-	{2, 2, 3, 3, 9}, // 19
+	{0, 0, 0, 1, 2},  // 3
+	{0, 0, 1, 1, 2},  // 4 players
+	{0, 1, 1, 1, 2},  // 5
+	{0, 1, 1, 1, 3},  // 6
+	{1, 1, 1, 1, 3},  // 7
+	{1, 1, 1, 1, 4},  // 8
+	{1, 1, 1, 2, 4},  // 9
+	{1, 1, 1, 2, 5},  // 10
+	{1, 1, 2, 2, 5},  // 11
+	{1, 1, 2, 2, 6},  // 12
+	{1, 2, 2, 2, 6},  // 13
+	{1, 2, 2, 2, 7},  // 14
+	{2, 2, 2, 2, 7},  // 15
+	{2, 2, 2, 2, 8},  // 16
+	{2, 2, 2, 3, 8},  // 17
+	{2, 2, 2, 3, 9},  // 18
+	{2, 2, 3, 3, 9},  // 19
 	{2, 2, 3, 3, 10}, // 20
 	{2, 3, 3, 3, 10}, // 21
 	{2, 3, 3, 3, 11}, // 22
@@ -277,14 +278,13 @@ var toKickData = [...][5]int{
 func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
 	// fill roles and disastre
 
-	
 	var wg sync.WaitGroup
-	
+
 	countOfAliveMembers := len(*bg.Members)
 	tokick := toKickData[countOfAliveMembers-3]
-	
+
 	bg.fillFeatures()
-	bg.send(ctx, b, bg.disastre + "\nКоличесвто мест: %d", tokick[4])
+	bg.send(ctx, b, bg.disastre+"\nКоличесвто мест: %d", tokick[4])
 
 	for step := 0; step < 4; step++ {
 		wg.Add(countOfAliveMembers)
@@ -307,7 +307,7 @@ func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
 			for {
 				wg.Add(countOfAliveMembers)
 
-				bg.sendSliders(ctx, b, &wg)
+				bg.runVote(ctx, b, &wg)
 
 				wg.Wait()
 
@@ -331,19 +331,7 @@ func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
 		}
 	}
 
-	wg.Add(countOfAliveMembers)
-
-	for _, passed := range *bg.Members {
-		if passed.Player.(*BunkerPlayer).isKicked {
-			continue
-		}
-		go func() {
-			defer wg.Done()
-			bg.sendInfo(ctx, b, passed)
-		}()
-	}
-
-	wg.Done()
+	// ai summary
 
 	bg.send(ctx, b, text.GameEnd)
 }
@@ -404,92 +392,32 @@ func (bg *BunkerGame) openHiddenFeatures(ctx context.Context, b Bot, wg *sync.Wa
 	}
 }
 
-func (bg *BunkerGame) sendSliders(ctx context.Context, b Bot, wg *sync.WaitGroup) {
-	messageIDs := map[int64]int{}
-	for _, member := range *bg.Members {
-		if member.Player.(*BunkerPlayer).isKicked {
-			bg.sendInfo(ctx, b, member)
-		}
-
-		slides := []slider.Slide{{Text: "Вы\n" + member.Player.Info()}}
-		membersList := []int64{}
-
-		for _, other := range *bg.Members {
-			if member.ChatID == other.ChatID || other.Player.(*BunkerPlayer).isKicked {
-				continue
-			}
-
-			slides = append(slides, slider.Slide{Text: other.Name + "\n" + other.Player.(*BunkerPlayer).View()})
-			membersList = append(membersList, other.ChatID)
-		}
-
-		onVoteSelect := func(ctx context.Context, b *bot.Bot, message models.MaybeInaccessibleMessage, item int) {
-
-			// TODO
-			if membersList[item] == message.Message.Chat.ID {
-				b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: message.Message.Chat.ID,
-					Text:   text.CantVotForYourSelf,
-				})
-				return
-			}
-			defer wg.Done()
-
-			atomic.AddInt32(&(*bg.Members)[bg.Members.FindMember(
-				User{ChatID: membersList[item]},
-			)].Player.(*BunkerPlayer).votes, 1)
-
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: message.Message.Chat.ID,
-				Text: fmt.Sprintf(text.VotedForF, (*bg.Members)[bg.Members.FindMember(
-					User{ChatID: membersList[item]},
-				)].Name),
-			})
-
-			msgID, ok := messageIDs[membersList[item]]
-			if !ok {
-				log.Printf("[ERROR] can not get message ID to delete from memberIDs map")
-				b.SendMessage(ctx, &bot.SendMessageParams{
-					ChatID: message.Message.Chat.ID,
-					Text:   text.ConvertToLang(message.Message.From.LanguageCode, text.SomethingWentWrong),
-				})
-			}
-
-			b.DeleteMessage(ctx, &bot.DeleteMessageParams{
-				ChatID:    message.Message.Chat.ID,
-				MessageID: msgID,
-			})
-		}
-
-		opts := []slider.Option{
-			slider.OnSelect("Голосовать", false, onVoteSelect),
-		}
-
-		sl := slider.New(b.(*bot.Bot), slides, opts...)
-
-		msg, err := sl.Show(ctx, b.(*bot.Bot), member.ChatID)
-		if err != nil {
-			log.Printf("[ERROR] message cant be send")
-		}
-
-		messageIDs[member.ChatID] = msg.ID
-	}
-}
-
 func (bg *BunkerGame) sendAllInfo(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 	data := []string{}
 
 	for _, player := range *bg.Members {
-		data = append(data, player.Name + player.Player.(*BunkerPlayer).View())
+		data = append(data, player.Name+player.Player.(*BunkerPlayer).View())
+	}
+
+	dataPool := sync.Pool{
+		New: func() any {
+			return make([]string, 0, MaximumMembersForBunker)
+		},
 	}
 
 	for i := range *bg.Members {
-		go func() {
+		go func(current int) {
 			defer wg.Done()
 
-			current := i
-			dataToSend := []string{"Вы\n" + (*bg.Members)[current].Player.Info()}
-			dataToSend = append(dataToSend, append(data[:current], data[current + 1:]...)...)
+			dataToSend := dataPool.Get().([]string)
+			defer func() {
+				dataToSend = dataToSend[:0]
+				dataPool.Put(&dataToSend)
+			}()
+
+			dataToSend = append(dataToSend, "Вы\n"+(*bg.Members)[current].Player.Info())
+			dataToSend = append(dataToSend, data[:current]...)
+			dataToSend = append(dataToSend, data[current+1:]...)
 
 			opts := []paginator.Option{
 				paginator.PerPage(1),
@@ -499,31 +427,58 @@ func (bg *BunkerGame) sendAllInfo(ctx context.Context, b Bot, wg *sync.WaitGroup
 			p := paginator.New(b.(*bot.Bot), dataToSend, opts...)
 
 			p.Show(ctx, b.(*bot.Bot), (*bg.Members)[current].ChatID)
-		}()
+		}(i)
 	}
 }
 
-func (bg *BunkerGame) sendInfo(ctx context.Context, b Bot, player User) {
-	slides := []slider.Slide{{Text: "Вы\n" + player.Player.Info()}}
-	for _, member := range *bg.Members {
-		if member.ChatID == player.ChatID {
-			continue
-		}
+func (bg *BunkerGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
+	var innerWg sync.WaitGroup
+	innerWg.Add(1)
+	defer innerWg.Wait()
 
-		slides = append(slides, slider.Slide{Text: member.Name + "\n" + member.Player.(*BunkerPlayer).View()})
+	for i := range *bg.Members {
+		go func(current int) {
+			onSelect := func(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
+				defer wg.Done()
+
+				ChID, _ := strconv.Atoi(fmt.Sprintf("%d", data))
+				player, ok := bg.Members.GetMember(int64(ChID))
+				if !ok {
+					logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
+					b.SendMessage(ctx, &bot.SendMessageParams{
+						ChatID: mes.Message.Chat.ID,
+						Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+					})
+					*bg.IsStarted = false
+					bg.Members.SendAll(ctx, b, text.GameStoped)
+					return
+				}
+
+				atomic.AddInt32(&player.Player.(*BunkerPlayer).votes, 1)
+
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID: mes.Message.Chat.ID,
+					Text:   text.Convert(mes.Message.From.LanguageCode, text.VotedF, player.Name),
+				})
+			}
+
+			kb := inline.New(b.(*bot.Bot))
+
+			for _, member := range *bg.Members {
+				if (*bg.Members)[current].ChatID == member.ChatID {
+					continue
+				}
+
+				kb.Row().Button(member.Name, []byte(fmt.Sprintf("%d", member.ChatID)), onSelect)
+			}
+
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID:      (*bg.Members),
+				Text:        text.ToKick,
+				ReplyMarkup: kb,
+			})
+		}(i)
 	}
-
-	onCancelSelect := func(ctx context.Context, b *bot.Bot, message models.MaybeInaccessibleMessage) {
-		
-	}
-
-	opts := []slider.Option{
-		slider.OnCancel("Закрыть", true, onCancelSelect),
-	}
-
-	sl := slider.New(b.(*bot.Bot), slides, opts...)
-
-	sl.Show(ctx, b.(*bot.Bot), player.ChatID)
 }
 
 func (bg *BunkerGame) twoMaxVotes() (User, User) {

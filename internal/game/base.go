@@ -16,8 +16,10 @@ type Bot interface {
 }
 
 const (
-	MINIMUM_MEMBERS_FOR_MAFIA = 3
-	MinimumMembersForBunker   = 3
+	MinimumMembersForMafia  = 3
+	MaximumMembersForMafia  = 20
+	MinimumMembersForBunker = 3
+	MaximumMembersForBunker = 22
 )
 
 type GameStarter interface {

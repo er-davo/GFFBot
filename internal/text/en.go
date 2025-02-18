@@ -42,7 +42,8 @@ var En = [...]string{
 	GameChosenF:   "You chose %s.\nTo start game send /game_start",
 	CantStartGame: "You can't start game until you choose game type!",
 
-	AtLeastMembersF: "You need to have at least %d members in lobby to start game!",
+	AtLeastMembersF: "You need to have at least %d members in lobby to start that game!",
+	MaximumMembersF: "You can have maximum %d members in lobby to start that game!",
 	RoleF:           "You are %s!",
 
 	KeyCreatedF:        "Your lobby key is: %s\nNow choose what game you want to play!",

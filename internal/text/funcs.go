@@ -1,8 +1,20 @@
 package text
 
-import "fmt"
+import (
+	"fmt"
 
-func ConvertToLang(lang string, key int, formats ...any) string {
+	"gffbot/internal/logger"
+
+	"go.uber.org/zap"
+)
+
+func init() {
+	logger.Init()
+}
+
+func Convert(lang string, key int, formats ...any) string {
+	logger.Log.Info("text.Convert(...) called", zap.String("lang", lang))
+	
 	switch lang {
 	case "en":
 		return fmt.Sprintf(En[key], formats...)

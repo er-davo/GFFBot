@@ -1,0 +1,4 @@
+{"level":"\u001b[34minfo\u001b[0m","ts":1739792381.3320265,"caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[34minfo\u001b[0m","ts":1739792388.2112348,"caller":"handlers/on_select.go:136","msg":"new lobby is added","lobby_key":"T1R9"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-17T14:41:35.0077372+03:00","caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-17T14:41:52.0610189+03:00","caller":"handlers/base_handlers.go:77","msg":"lobby does not exists","lobby_key":"","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/internal/handlers/base_handlers.go:77"}
