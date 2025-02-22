@@ -1,0 +1,21 @@
+{"level":"\u001b[34minfo\u001b[0m","ts":1739792381.3320265,"caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[34minfo\u001b[0m","ts":1739792388.2112348,"caller":"handlers/on_select.go:136","msg":"new lobby is added","lobby_key":"T1R9"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-17T14:41:35.0077372+03:00","caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-17T14:41:52.0610189+03:00","caller":"handlers/base_handlers.go:77","msg":"lobby does not exists","lobby_key":"","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/internal/handlers/base_handlers.go:77"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:06.8281086+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-18T15:12:06.9483715+03:00","caller":"handlers/base_handlers.go:85","msg":"user is not in data","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/internal/handlers/base_handlers.go:85"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:28.1669367+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-18T15:12:28.2729241+03:00","caller":"handlers/base_handlers.go:85","msg":"user is not in data","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/internal/handlers/base_handlers.go:85"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:39.8086694+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:39.8091215+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:39.8096617+03:00","caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-18T15:12:50.1000508+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":""}
+{"level":"\u001b[35mdebug\u001b[0m","ts":"2025-02-21T22:50:52.2183181+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-21T22:50:52.512575+03:00","caller":"handlers/base_handlers.go:85","msg":"user is not in data","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/GFF-project/internal/handlers/base_handlers.go:85"}
+{"level":"\u001b[35mdebug\u001b[0m","ts":"2025-02-21T22:50:56.0048563+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[35mdebug\u001b[0m","ts":"2025-02-21T22:50:56.0056135+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[34minfo\u001b[0m","ts":"2025-02-21T22:50:56.0061924+03:00","caller":"handlers/base_handlers.go:105","msg":"new user added","name":"David Eritsyan","chat_id":1212413337}
+{"level":"\u001b[35mdebug\u001b[0m","ts":"2025-02-21T22:50:57.6818661+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-21T22:50:57.8140676+03:00","caller":"handlers/base_handlers.go:85","msg":"user is not in data","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/GFF-project/internal/handlers/base_handlers.go:85"}
+{"level":"\u001b[35mdebug\u001b[0m","ts":"2025-02-21T23:07:52.4339628+03:00","caller":"text/funcs.go:16","msg":"text.Convert(...) called","lang":"ru"}
+{"level":"\u001b[31merror\u001b[0m","ts":"2025-02-21T23:07:52.7338245+03:00","caller":"handlers/base_handlers.go:85","msg":"user is not in data","chat_id":1212413337,"stacktrace":"gffbot/internal/handlers.DefaultHandler\n\tD:/VScodeFiles/GFFBot/gff/internal/handlers/base_handlers.go:85"}
