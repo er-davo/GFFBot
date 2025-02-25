@@ -1,0 +1,25 @@
+services:
+  bot:
+    build: .
+    volumes:
+      - ./gff:/app
+    environment:
+      - BOT_API_TOKEN=${BOT_API_TOKEN}
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    environment:
+      - POSGRES_USER=${POSGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:

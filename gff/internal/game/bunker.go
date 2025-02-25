@@ -67,7 +67,7 @@ func (bp *BunkerPlayer) fill() {
 
 	// Biological Params
 
-	age := 12 + rand.IntN(80)
+	age := 12 + rand.IntN(79)
 	bp.biologicalParams.info = fmt.Sprintf("%d", age)
 
 	if age%10 == 1 {
