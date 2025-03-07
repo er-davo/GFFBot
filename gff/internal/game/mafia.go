@@ -180,6 +180,11 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 			}
 		}
 
+		if m.unwinnable() {
+			m.Members.SendAll(ctx, b, text.MafiaWon)
+			break
+		}
+
 		if m.mafiaIsDead() {
 			m.Members.SendAll(ctx, b, text.CiviliansWon)
 			break
@@ -475,6 +480,21 @@ func (m *MafiaGame) detectivesIsDead() bool {
 		}
 	}
 	return true
+}
+
+func (m *MafiaGame) unwinnable() bool {
+	mafiaCount := 0
+    civilianCount := 0
+
+    for _, player := range *m.Members {
+        if player.Player.(*MafiaPlayer).role == text.Mafia {
+            mafiaCount++
+        } else {
+            civilianCount++
+        }
+    }
+
+    return mafiaCount >= civilianCount
 }
 
 func (m *MafiaGame) doctorsIsDead() bool {

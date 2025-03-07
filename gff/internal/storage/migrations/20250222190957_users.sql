@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE user (
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+CREATE TABLE users (
+    id INTEGER SERIAL PRIMARY KEY
     chat_id INTEGER NOT NULL
     name VARCHAR(255) NOT NULL
 );
@@ -9,5 +9,5 @@ CREATE TABLE user (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE user;
+DROP TABLE users;
 -- +goose StatementEnd

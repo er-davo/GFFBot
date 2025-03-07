@@ -1,5 +1,7 @@
 .SILENT:
 
+include .env
+
 go-run:
 	go run cmd/main.go
 
@@ -9,11 +11,14 @@ build:
 run:
 	./build/gffbot
 
+goose-up1:
+	goose -dir ./migrations postgres $(DATABASE_URL) up
+
 goose-up:
-	goose postgres 'user=user password=password dbname=gff sslmode=disable' up
+	goose -dir ./migrations postgres 'user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) port=5432 host=db sslmode=disable' up
 
 goose-down:
-	goose -dir ./migrations postgres 'user=user password=password dbname=gff sslmode=disable' down
+	goose -dir ./migrations postgres 'user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) host=db sslmode=disable' down
 
 test:
 	go test ./...
