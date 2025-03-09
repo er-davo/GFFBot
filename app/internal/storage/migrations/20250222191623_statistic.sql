@@ -1,11 +1,11 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE statistic (
-    user_id INTEGER references user(id)
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
     played_games INTEGER
     wins INTEGER
     losses INTEGER
-    winrate float
+    winrate FLOAT
 );
 -- +goose StatementEnd
 

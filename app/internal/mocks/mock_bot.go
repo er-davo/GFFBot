@@ -1,4 +1,4 @@
-package botmock
+package mocks
 
 import (
 	"context"

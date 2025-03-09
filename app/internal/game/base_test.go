@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"gffbot/internal/botmock"
+	"gffbot/internal/mocks"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot/models"
@@ -30,7 +30,7 @@ func TestGetText(t *testing.T) {
 }
 
 func TestUser_SendMessage(t *testing.T) {
-	mockBot := new(botmock.MockBot)
+	mockBot := new(mocks.MockBot)
 	u := User{}
 
 	mockBot.On("SendMessage", mock.Anything, mock.AnythingOfType("*bot.SendMessageParams")).
@@ -46,7 +46,7 @@ func TestUser_SendMessage(t *testing.T) {
 }
 
 func TestSendAll(t *testing.T) {
-	mockBot := new(botmock.MockBot)
+	mockBot := new(mocks.MockBot)
 	us := Users{
 		User{},
 		User{},

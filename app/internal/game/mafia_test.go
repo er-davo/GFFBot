@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"gffbot/internal/botmock"
+	"gffbot/internal/mocks"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot/models"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestFillRoles(t *testing.T) {
-	mockBot := new(botmock.MockBot)
+	mockBot := new(mocks.MockBot)
 	lang := ""
 	
 	us := Users{

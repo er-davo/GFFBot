@@ -2,7 +2,7 @@ FROM golang:alpine AS builder
 
 WORKDIR /app
 
-COPY gff /app
+COPY app /app
 
 RUN go mod download
 RUN apk --no-cache add bash gcc musl-dev
