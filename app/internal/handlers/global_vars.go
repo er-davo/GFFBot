@@ -5,11 +5,13 @@ import (
 	"sync"
 
 	"gffbot/internal/game"
+	"gffbot/internal/storage"
 	"gffbot/internal/text"
 )
 
 var users Users
 var lobbies Lobbies
+var repo *storage.Repository
 
 type Lobbies struct {
 	Mut sync.RWMutex
@@ -36,6 +38,10 @@ func createLobbyKey() string {
 	key[3] = text.DigitsBytes[rand.IntN(len(text.DigitsBytes))]
 
 	return string(key)
+}
+
+func LoadRepository(r *storage.Repository) {
+	repo = r
 }
 
 func init() {

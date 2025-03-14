@@ -44,12 +44,12 @@ func (r *Repository) CreateUser(u User) error {
 	return tx.Commit()
 }
 
-func (r *Repository) GetUser(chatID int) (User, error) {
+func (r *Repository) GetUser(chatID int64) (User, error) {
 	r.sem.Acquire()
 	defer r.sem.Release()
 
-	user := User{}
-	query := `SELECT user_id, name FROM users WHERE chat_id = $1`
+	user := User{ChatID: chatID}
+	query := `SELECT id, name FROM users WHERE chat_id = $1`
 	row := r.db.QueryRow(query, chatID)
 	err := row.Scan(&user.ID, &user.Name)
 	return user, err

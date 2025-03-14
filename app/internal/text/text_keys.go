@@ -65,6 +65,14 @@ const (
 
 	UnknownCommand
 	StartCommandF
+	HelpCommand
+	LoginCommand
+	StatisticCommandF
+	LobbyCommand
+
+	LoginSuccess
+	LoginAlready
+	LoginFailed
 
 	CreatingLobbyError
 	CantFindUser

@@ -55,8 +55,16 @@ var En = [...]string{
 	PlayerJoinedLobbyF: "%s joined the lobby!\nCurrent members in lobby:\n%s",
 	AlreadyInLobbyF:    "You are currently in a lobby with key: %s!\nLeave that lobby and then you can join",
 
-	UnknownCommand: "I don't know that command",
-	StartCommandF:  "Hello %s, I'm Games for fun bot!\nChoose to join a lobby or create one to start the game!",
+	UnknownCommand:    "I don't know that command",
+	StartCommandF:     "Hello %s, I'm the Games for Fun bot!\nYou can play games like Mafia or Shelter.\nUse /help for more information.",
+	HelpCommand:       "Available commands:\n/login - log in to save your game statistics.\n/statistic - view your game statistics\n/lobby - create or join a lobby.\n/game_start - start the game",
+	LoginCommand:      "Logging in or signing up...",
+	StatisticCommandF: "Your statistics:\n%s",
+	LobbyCommand:      "Choose a game to play:",
+	
+	LoginSuccess: "You have successfully logged in!",
+	LoginAlready: "You are already logged in!",
+	LoginFailed:  "Login failed! Please try again later.",
 
 	CreatingLobbyError: "Something went wrong while creating the lobby! Please try again later.",
 	CantFindUser:       "Error!\nCan't find you in data! Please restart GFFBot",

@@ -11,26 +11,26 @@ import (
 func TestCreateUser_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-        t.Fatalf("an error '%s' on creating sqlmock", err)
-    }
+		t.Fatalf("an error '%s' on creating sqlmock", err)
+	}
 	defer db.Close()
 
 	repo := NewRepository(db)
 
 	user := User{
 		ChatID: 12345,
-        Name:  "Test User",
+		Name:   "Test User",
 	}
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO users \(chat_id, name\) VALUES \(\$1, \$2\) ON CONFLICT \(chat_id\) DO NOTHING RETURNING id`).
-	    WithArgs(user.ChatID, user.Name).
+		WithArgs(user.ChatID, user.Name).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 	mock.ExpectExec(`INSERT INTO statistic \(user_id, played_games, wins, losses, winrate\) VALUES \(\$1, 0, 0, 0, 0.0\)`).
-	    WithArgs(1).
+		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(1, 0))
-	
+
 	mock.ExpectCommit()
 
 	err = repo.CreateUser(user)
@@ -43,22 +43,22 @@ func TestCreateUser_Success(t *testing.T) {
 func TestCreateUser_AlreadyExists(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
-        t.Fatalf("an error '%s' on creating sqlmock", err)
-    }
+		t.Fatalf("an error '%s' on creating sqlmock", err)
+	}
 	defer db.Close()
 
 	repo := NewRepository(db)
 
 	user := User{
 		ChatID: 12345,
-        Name:  "Test User",
+		Name:   "Test User",
 	}
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO users \(chat_id, name\) VALUES \(\$1, \$2\) ON CONFLICT \(chat_id\) DO NOTHING RETURNING id`).
-	    WithArgs(user.ChatID, user.Name).
+		WithArgs(user.ChatID, user.Name).
 		WillReturnError(sql.ErrNoRows)
-	
+
 	mock.ExpectRollback()
 
 	err = repo.CreateUser(user)
@@ -68,12 +68,33 @@ func TestCreateUser_AlreadyExists(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet(), "error mock expectations were not met")
 }
 
-// func TestGetUser_Success(t *testing.T) {
-// 	db, mock, err := sqlmock.New()
-// 	if err != nil {
-//         t.Fatalf("an error '%s' on creating sqlmock", err)
-//     }
-// 	defer db.Close()
+func TestGetUser_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' on creating sqlmock", err)
+	}
+	defer db.Close()
 
-// 	repo := NewRepository(db)
-// }
+	repo := NewRepository(db)
+
+	expectedUser := User{
+		ID:     1,
+		ChatID: 12345,
+		Name:   "Test User",
+	}
+
+	rows := sqlmock.NewRows([]string{"chat_id", "name"}).
+		AddRow(expectedUser.ID, expectedUser.Name)
+
+	mock.ExpectQuery(`SELECT id, name FROM users WHERE chat_id = \$1`).
+		WithArgs(expectedUser.ChatID).
+		WillReturnRows(rows)
+
+	user, err := repo.GetUser(expectedUser.ChatID)
+
+	assert.NoError(t, err, "error getting user")
+
+	assert.Equal(t, expectedUser, user, "got user not equal to expected user")
+
+	assert.NoError(t, mock.ExpectationsWereMet(), "expectations were not met")
+}

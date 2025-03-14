@@ -5,6 +5,8 @@ import (
 	"fmt"
 	
 	"gffbot/internal/config"
+
+	_ "github.com/lib/pq"
 )
 
 type DB interface {

@@ -21,16 +21,16 @@ func main() {
 
 	db, err := database.Connect()
 	if err != nil {
-        panic(err)
-    }
+		panic(err)
+	}
 	defer db.Close()
 
 	repo := storage.NewRepository(db)
 	go repo.CleanUpTask(
-		24 * time.Hour * time.Duration(config.Load().CheckTime), 
+		24*time.Hour*time.Duration(config.Load().CheckTime),
 		config.Load().InactiveDaysDuration,
 	)
-
+	handlers.LoadRepository(repo)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -39,15 +39,18 @@ func main() {
 		bot.WithDefaultHandler(handlers.DefaultHandler),
 	}
 
-	
 	gffbot, err := bot.New(config.Load().TelegramBotApiToken, opts...)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, handlers.StartHandler)
+	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, handlers.HelpHandler)
+	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/login", bot.MatchTypeExact, handlers.LoginHandler)
+	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/statistic", bot.MatchTypeExact, handlers.StatisticHandler)
+	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "lobby", bot.MatchTypePrefix, handlers.LobbyHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/game_start", bot.MatchTypeExact, handlers.GameStartHandler)
-	
+
 
 	gffbot.Start(ctx)
 }

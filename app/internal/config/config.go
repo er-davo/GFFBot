@@ -45,9 +45,12 @@ func Load() *Config {
 		config.DatabasePort = loadEnvStr("POSTGRES_PORT")
 		config.DatabaseHost = loadEnvStr("DB_HOST")
 
-		jsonFile, err := os.ReadFile("../../configs/config.json")
+		jsonFile, err := os.ReadFile("configs/config.json")
 		if err != nil {
-			panic(err)
+			jsonFile, err = os.ReadFile("../../configs/config.json")
+			if err != nil {
+                panic(err)
+            }
 		}
 
 		err = json.Unmarshal(jsonFile, &config)

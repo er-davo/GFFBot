@@ -1,5 +1,8 @@
 package storage
 
+import (
+	"fmt"
+)
 
 type Statistic struct {
 	UserID      int64
@@ -7,6 +10,33 @@ type Statistic struct {
 	Wins        int
 	Losses      int
 	Winrate     float64
+}
+
+func (s *Statistic) ToString(lang string) string {
+	ru := []string{
+		"Сыграно игр: %d",
+		"Побед: %d",
+		"Поражений: %d",
+		"Процент побед: %.2f",
+	}
+	en := []string{
+		"Games played: %d",
+		"Wins: %d",
+        "Losses: %d",
+        "Win rate: %.2f",
+	}
+
+	if lang == "ru" {
+		return fmt.Sprintf(ru[0], s.PlayedGames) + "\n" +
+               fmt.Sprintf(ru[1], s.Wins) + "\n" +
+               fmt.Sprintf(ru[2], s.Losses) + "\n" +
+               fmt.Sprintf(ru[3], s.Winrate*100) + "%"
+	} else {
+		return fmt.Sprintf(en[0], s.PlayedGames) + "\n" +
+               fmt.Sprintf(en[1], s.Wins) + "\n" +
+               fmt.Sprintf(en[2], s.Losses) + "\n" +
+               fmt.Sprintf(en[3], s.Winrate*100) + "%"
+	}
 }
 
 func (s *Statistic) Update(win bool) *Statistic {
@@ -26,14 +56,14 @@ func (r *Repository) GetStatistic(userID int64) (Statistic, error) {
 	defer r.sem.Release()
 
 	stat := Statistic{}
-	query := `SELECT * FROM statistics WHERE user_id = $1 FOR UPDATE`
+	query := `SELECT * FROM statistic WHERE user_id = $1 FOR UPDATE`
 	row := r.db.QueryRow(query, userID)
 	err := row.Scan(&stat.UserID, &stat.PlayedGames, &stat.Wins, &stat.Losses, &stat.Winrate)
 	return stat, err
 }
 
 func (r *Repository) UpdateStatistic(stat Statistic) error {
-	query := `UPDATE statistics SET played_games = $1, wins = $2, losses = $3, winrate = $4 WHERE user_id = $5`
+	query := `UPDATE statistic SET played_games = $1, wins = $2, losses = $3, winrate = $4 WHERE user_id = $5`
 	_, err := r.db.Exec(query, stat.PlayedGames, stat.Wins, stat.Losses, stat.Winrate, stat.UserID)
 	return err
 }
