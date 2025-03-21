@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"gffbot/internal/storage"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
@@ -23,7 +25,7 @@ const (
 )
 
 type GameStarter interface {
-	StartGame(ctx context.Context, b Bot)
+	StartGame(ctx context.Context, b Bot, repo *storage.Repository)
 }
 
 type Player interface {
@@ -31,6 +33,7 @@ type Player interface {
 }
 
 type User struct {
+	ID     int64
 	ChatID int64
 	Lang   string
 	Name   string
@@ -40,6 +43,17 @@ type User struct {
 	SendingKey bool
 
 	Player Player
+
+	Activity time.Time
+}
+
+func CreateUser(update *models.Update) *User {
+	return &User{
+		ChatID:   update.Message.Chat.ID,
+		Lang:     update.Message.From.LanguageCode,
+		Name:     bot.EscapeMarkdown(update.Message.From.FirstName) + " " + bot.EscapeMarkdown(update.Message.From.LastName),
+		Activity: time.Now(),
+	}
 }
 
 func (u *User) SendMessage(ctx context.Context, b Bot, key int, formats ...any) (*models.Message, error) {
@@ -47,11 +61,6 @@ func (u *User) SendMessage(ctx context.Context, b Bot, key int, formats ...any) 
 		ChatID: u.ChatID,
 		Text:   u.GetText(key, formats...),
 	})
-}
-
-func (u *User) SendMessageSync(ctx context.Context, b Bot, key int, wg *sync.WaitGroup, formats ...any) (*models.Message, error) {
-	defer wg.Done()
-	return u.SendMessage(ctx, b, key, formats...)
 }
 
 func (u *User) SendReplayMarkup(ctx context.Context, b Bot, rm models.ReplyMarkup, key int, formats ...any) (*models.Message, error) {
@@ -81,10 +90,10 @@ func (u *Users) SendAll(ctx context.Context, b Bot, key int, a ...any) {
 	wg.Add(len(*u))
 
 	for _, player := range *u {
-		go func() {
+		go func(p User) {
 			defer wg.Done()
-			player.SendMessage(ctx, b, key, a...)
-		}()
+			p.SendMessage(ctx, b, key, a...)
+		}(player)
 	}
 
 	wg.Wait()
@@ -122,29 +131,23 @@ type Lobby struct {
 	Members Users
 }
 
-func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot) {
+func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot, repo *storage.Repository) {
+	var factory GameFactory
+
 	switch l.GameType {
 	case text.GMafia:
-
-		l.Game = &MafiaGame{
-			IsStarted: &l.IsStarted,
-			Members:   &l.Members,
-		}
-
-		for i := range l.Members {
-			l.Members[i].Player = &MafiaPlayer{Lang: &l.Members[i].Lang}
-		}
-
+		factory = MafiaGameFactory{}
 	case text.GBunker:
-		l.Game = &BunkerGame{
-			IsStarted: &l.IsStarted,
-			Members:   &l.Members,
-		}
-
-		for i := range l.Members {
-			l.Members[i].Player = &BunkerPlayer{Lang: &l.Members[i].Lang}
-		}
+		factory = BunkerGameFactory{}
+	default:
+		return
 	}
 
-	l.Game.StartGame(ctx, b)
+	l.Game = factory.CreateGame(&l.IsStarted, &l.Members)
+
+	for i := range l.Members {
+		l.Members[i].Player = factory.CreatePlayer(&l.Members[i].Lang)
+	}
+
+	l.Game.StartGame(ctx, b, repo)
 }

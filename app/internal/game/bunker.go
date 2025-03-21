@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"gffbot/internal/logger"
+	"gffbot/internal/storage"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
@@ -275,7 +276,7 @@ var toKickData = [...][5]int{
 	{2, 3, 3, 3, 11}, // 22
 }
 
-func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
+func (bg *BunkerGame) StartGame(ctx context.Context, b Bot, repo *storage.Repository) {
 	// fill roles and disastre
 
 	var wg sync.WaitGroup
@@ -334,6 +335,7 @@ func (bg *BunkerGame) StartGame(ctx context.Context, b Bot) {
 	// ai summary
 
 	bg.send(ctx, b, text.GameEnd)
+	bg.loadResults(repo)
 }
 
 func (bg *BunkerGame) fillFeatures() {
@@ -521,4 +523,21 @@ func (bg *BunkerGame) voteResults() string {
 func (bg *BunkerGame) kick(u User) {
 	index := bg.Members.FindMember(u)
 	(*bg.Members)[index].Player.(*BunkerPlayer).isKicked = true
+}
+
+func (bg *BunkerGame) loadResults(repo *storage.Repository) {
+	var wg sync.WaitGroup
+	wg.Add(len(*bg.Members))
+
+	for _, member := range *bg.Members {
+		go func(user User) {
+			defer wg.Done()
+			err := repo.UpdateUserStatistic(user.ID, !user.Player.(*BunkerPlayer).isKicked)
+			if err != nil {
+                logger.Log.Error("can't update user statistic", zap.Int64("user_id", user.ID), zap.Error(err))
+            }
+		}(member)
+	}
+
+	wg.Wait()
 }

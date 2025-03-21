@@ -12,6 +12,7 @@ import (
 	//	"time"
 
 	"gffbot/internal/logger"
+	"gffbot/internal/storage"
 	"gffbot/internal/text"
 
 	"github.com/go-telegram/bot"
@@ -51,7 +52,7 @@ type MafiaGame struct {
 	doctors    UsersRef
 }
 
-func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
+func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Repository) {
 	var wg sync.WaitGroup
 
 	countOfAliveMembers := len(*m.Members)
@@ -182,16 +183,19 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot) {
 
 		if m.unwinnable() {
 			m.Members.SendAll(ctx, b, text.MafiaWon)
+			m.loadResults(repo, true)
 			break
 		}
 
 		if m.mafiaIsDead() {
 			m.Members.SendAll(ctx, b, text.CiviliansWon)
+			m.loadResults(repo, false)
 			break
 		}
 
 		if m.civiliansIsDead() {
 			m.Members.SendAll(ctx, b, text.MafiaWon)
+			m.loadResults(repo, true)
 			break
 		}
 	}
@@ -533,4 +537,28 @@ func (m *MafiaGame) kick(u User) int {
 	(*m.Members)[index].Player.(*MafiaPlayer).isAlive = false
 
 	return (*m.Members)[index].Player.(*MafiaPlayer).role
+}
+
+func (m *MafiaGame) loadResults(repo *storage.Repository, mafiaWon bool) {
+	var wg sync.WaitGroup
+	wg.Add(len(*m.Members))
+
+	for _, member := range *m.Members {
+		go func(user User) {
+			defer wg.Done()
+			if user.Player.(*MafiaPlayer).role == text.Mafia {
+				err := repo.UpdateUserStatistic(user.ID, mafiaWon)
+				if err != nil {
+					logger.Log.Error("can't update user statistic", zap.Int64("user_id", user.ID), zap.Error(err))
+				}
+			} else {
+				err := repo.UpdateUserStatistic(user.ID, !mafiaWon)
+				if err != nil {
+					logger.Log.Error("can't update user statistic", zap.Int64("user_id", user.ID), zap.Error(err))
+				}
+			}
+		}(member)
+	}
+
+	wg.Wait()
 }

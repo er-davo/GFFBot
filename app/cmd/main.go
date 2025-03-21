@@ -48,7 +48,7 @@ func main() {
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, handlers.HelpHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/login", bot.MatchTypeExact, handlers.LoginHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/statistic", bot.MatchTypeExact, handlers.StatisticHandler)
-	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "lobby", bot.MatchTypePrefix, handlers.LobbyHandler)
+	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/lobby", bot.MatchTypePrefix, handlers.LobbyHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/game_start", bot.MatchTypeExact, handlers.GameStartHandler)
 
 

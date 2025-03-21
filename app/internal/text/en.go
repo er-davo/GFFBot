@@ -67,7 +67,7 @@ var En = [...]string{
 	LoginFailed:  "Login failed! Please try again later.",
 
 	CreatingLobbyError: "Something went wrong while creating the lobby! Please try again later.",
-	CantFindUser:       "Error!\nCan't find you in data! Please restart GFFBot",
+	CantFindUser:       "Error!\nCan't find you in data! Please restart GFFBot with /start",
 	SomethingWentWrong: "Something went wrong! Please restart the bot",
 
 	You: "You",

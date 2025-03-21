@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"strings"
 
 	"gffbot/internal/game"
 	"gffbot/internal/logger"
@@ -12,6 +11,7 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/go-telegram/ui/keyboard/inline"
+
 	"go.uber.org/zap"
 )
 
@@ -24,83 +24,33 @@ func DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	users.Mut.Lock()
-	defer users.Mut.Unlock()
-
-	user, exists := users.U[update.Message.Chat.ID]
-	if exists && user.SendingKey {
-		if user.LobbyID != 0 || user.LobbyKey != "" {
-			user.SendMessage(ctx, b, text.AlreadyInLobbyF, user.LobbyKey)
-			return
-		}
-
-		key := update.Message.Text
-
-		lobbies.Mut.Lock()
-		defer lobbies.Mut.Unlock()
-		if lob, exists := lobbies.L[key]; exists {
-
-			if lob.IsStarted {
-				user.SendMessage(ctx, b, text.LobbyGameIsStarted)
-				return
-			}
-
-			// Поменять
-
-			memebersList := []string{user.Name}
-
-			for _, memeber := range lob.Members {
-				memebersList = append(memebersList, memeber.Name)
-			}
-
-			newList := strings.Join(memebersList, "\n")
-
-			// ==//==
-
-			for _, member := range lob.Members {
-				member.SendMessage(ctx, b, text.PlayerJoinedLobbyF, user.Name, newList)
-			}
-
-			user.SendingKey = false
-			user.LobbyKey = key
-			user.LobbyID = lob.ID
-			users.U[update.Message.Chat.ID] = user
-
-			lob.Members = append(lob.Members, user)
-
-			lobbies.L[key] = lob
-
-			user.SendMessage(ctx, b, text.PlayerJoinedLobbyF, user.GetText(text.You), newList)
-		} else {
-			user.SendMessage(ctx, b, text.LobbyNotExists)
-			logger.Log.Error("lobby does not exists", zap.String("lobby_key", user.LobbyKey), zap.Int64("chat_id", user.ChatID))
-			return
-		}
-	} else {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   text.Convert(update.Message.From.LanguageCode, text.UnknownCommand),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
+	user, ok := ensureUserExists(ctx, b, update.Message.Chat.ID, update.Message.From.LanguageCode)
+	if !ok {
+		return
 	}
+
+	if user.SendingKey {
+		KeySubHandler(ctx, b, update, user)
+		return
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   text.Convert(update.Message.From.LanguageCode, text.UnknownCommand),
+	})
 }
 
 func HelpHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-        Text:   text.Convert(update.Message.From.LanguageCode, text.HelpCommand),
+		Text:   text.Convert(update.Message.From.LanguageCode, text.HelpCommand),
 	})
 }
 
 func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	newUser := game.User{
-		ChatID: update.Message.Chat.ID,
-		Name: bot.EscapeMarkdown(update.Message.From.FirstName) + " " +
-			bot.EscapeMarkdown(update.Message.From.LastName),
-		Lang: update.Message.From.LanguageCode,
-	}
+	newUser := game.CreateUser(update)
 
-	users.Add(&newUser)
+	users.Add(newUser)
 
 	logger.Log.Info("new user added", zap.String("name", newUser.Name), zap.Int64("chat_id", newUser.ChatID))
 
@@ -108,19 +58,14 @@ func StartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func LoginHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	user, exists := users.U[update.Message.Chat.ID]
-	if !exists {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   text.Convert(update.Message.From.LanguageCode, text.SomethingWentWrong),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
+	user, ok := ensureUserExists(ctx, b, update.Message.Chat.ID, update.Message.From.LanguageCode)
+	if !ok {
 		return
 	}
 
 	err := repo.CreateUser(storage.User{
 		ChatID: user.ChatID,
-		Name: user.Name,
+		Name:   user.Name,
 	})
 
 	if err == storage.ErrAlreadyInDatabase {
@@ -137,28 +82,24 @@ func LoginHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 }
 
 func StatisticHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	user, exists := users.U[update.Message.Chat.ID]
-    if!exists {
-        b.SendMessage(ctx, &bot.SendMessageParams{
-            ChatID: update.Message.Chat.ID,
-            Text:   text.Convert(update.Message.From.LanguageCode, text.SomethingWentWrong),
-        })
-        logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
-        return
-    }
+	user, ok := ensureUserExists(ctx, b, update.Message.Chat.ID, update.Message.From.LanguageCode)
+	if !ok {
+		return
+	}
+
 	dataUser, err := repo.GetUser(user.ChatID)
 	if err != nil {
-        user.SendMessage(ctx, b, text.SomethingWentWrong)
-        logger.Log.Error("get user failed", zap.Int64("chat_id", update.Message.Chat.ID), zap.Error(err))
-        return
-    }
+		user.SendMessage(ctx, b, text.SomethingWentWrong)
+		logger.Log.Error("get user failed", zap.Int64("chat_id", update.Message.Chat.ID), zap.Error(err))
+		return
+	}
 
-    stats, err := repo.GetStatistic(dataUser.ID)
+	stats, err := repo.GetStatistic(dataUser.ID)
 	if err != nil {
-        user.SendMessage(ctx, b, text.SomethingWentWrong)
-        logger.Log.Error("get statistic failed", zap.Int64("chat_id", update.Message.Chat.ID), zap.Error(err))
-        return
-    }
+		user.SendMessage(ctx, b, text.SomethingWentWrong)
+		logger.Log.Error("get statistic failed", zap.Int64("chat_id", update.Message.Chat.ID), zap.Error(err))
+		return
+	}
 
 	user.SendMessage(ctx, b, text.StartCommandF, stats.ToString(user.Lang))
 }
@@ -170,24 +111,17 @@ func LobbyHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		Row().
 		Button(text.Convert(update.Message.From.LanguageCode, text.Create), []byte(update.Message.From.LanguageCode), onCreateLobbySelect)
 
-	user := game.User{
-		ChatID: update.Message.Chat.ID,
-		Name: bot.EscapeMarkdown(update.Message.From.FirstName) + " " +
-			bot.EscapeMarkdown(update.Message.From.LastName),
-		Lang: update.Message.From.LanguageCode,
+	user, ok := ensureUserExists(ctx, b, update.Message.Chat.ID, update.Message.From.LanguageCode)
+	if !ok {
+		return
 	}
 
 	user.SendReplayMarkup(ctx, b, kb, text.LobbyCommand)
 }
 
 func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	currentUser, exists := users.U[update.Message.Chat.ID]
-	if !exists {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   text.Convert(update.Message.From.LanguageCode, text.SomethingWentWrong),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", update.Message.Chat.ID))
+	currentUser, ok := ensureUserExists(ctx, b, update.Message.Chat.ID, update.Message.From.LanguageCode)
+	if !ok {
 		return
 	}
 
@@ -246,9 +180,7 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	for _, member := range lob.Members {
-		member.SendMessage(ctx, b, text.GameStarted)
-	}
+	lob.Members.SendAll(ctx, b, text.GameStarted)
 
 	lob.IsStarted = true
 
@@ -260,5 +192,5 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	logger.Log.Info("new game started [NEED LOG CHANGES]", zap.Int("game_type", lob.GameType))
 
-	lob.StartGame(ctx, b)
+	lob.StartGame(ctx, b, repo)
 }

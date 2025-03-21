@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gffbot/internal/game"
 	"gffbot/internal/logger"
@@ -26,13 +27,8 @@ func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccess
 
 	lang := string(data)
 
-	user, exists := users.U[mes.Message.Chat.ID]
-	if !exists {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: mes.Message.Chat.ID,
-			Text:   text.Convert(lang, text.CantFindUser),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", mes.Message.Chat.ID))
+	user, ok := ensureUserExists(ctx, b, mes.Message.Chat.ID, lang)
+	if !ok {
 		return
 	}
 
@@ -45,15 +41,8 @@ func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccess
 func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
 	lang := string(data)
 
-	users.Mut.Lock()
-	user, exists := users.U[mes.Message.Chat.ID]
-	users.Mut.Unlock()
-	if !exists {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: mes.Message.Chat.ID,
-			Text:   text.Convert(lang, text.CantFindUser),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", mes.Message.Chat.ID))
+	user, ok := ensureUserExists(ctx, b, mes.Message.Chat.ID, lang)
+	if !ok {
 		return
 	}
 
@@ -93,9 +82,9 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 
 	kb := inline.New(b).
 		Row().
-		Button(text.Convert(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia)), onGameSelect).
+		Button(text.Convert(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia) + " " + user.Lang), onGameSelect).
 		Row().
-		Button(text.Convert(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker)), onGameSelect)
+		Button(text.Convert(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker) + " " + user.Lang), onGameSelect)
 
 	user.SendReplayMarkup(ctx, b, kb, text.KeyCreatedF, key)
 
@@ -103,17 +92,12 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 }
 
 func onGameSelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
-	gameType, _ := strconv.Atoi(string(data))
+	reformData := strings.Split(string(data), " ")
+	gameType, _ := strconv.Atoi(string(reformData[0]))
+	lang := reformData[1]
 
-	users.Mut.Lock()
-	user, exists := users.U[mes.Message.Chat.ID]
-	users.Mut.Unlock()
-	if !exists {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: mes.Message.Chat.ID,
-			Text:   text.Convert(mes.Message.From.LanguageCode, text.CantFindUser),
-		})
-		logger.Log.Error("user is not in data", zap.Int64("chat_id", mes.Message.Chat.ID))
+	user, ok := ensureUserExists(ctx, b, mes.Message.Chat.ID, lang)
+	if !ok {
 		return
 	}
 
