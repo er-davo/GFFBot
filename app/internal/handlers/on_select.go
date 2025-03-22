@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gffbot/internal/game"
 	"gffbot/internal/logger"
@@ -22,15 +23,16 @@ func init() {
 }
 
 func onJoinLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInaccessibleMessage, data []byte) {
-	users.Mut.Lock()
-	defer users.Mut.Unlock()
-
+	
 	lang := string(data)
-
+	
 	user, ok := ensureUserExists(ctx, b, mes.Message.Chat.ID, lang)
 	if !ok {
 		return
 	}
+	
+	users.Mut.Lock()
+	defer users.Mut.Unlock()
 
 	user.SendingKey = true
 	users.U[user.ChatID] = user
@@ -54,7 +56,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 	if len(lobbies.L) != 0 {
 		for i := range 10 {
 			key = createLobbyKey()
-			if _, exists := lobbies.L[key]; exists {
+			if _, exists := lobbies.L[key]; !exists {
 				break
 			} else if i == 9 {
 				logger.Log.Error("somefting went wrong on creating new lobby.")
@@ -71,6 +73,7 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 		GameType:  text.GameNotSelected,
 		IsStarted: false,
 		Members:   []game.User{user},
+		Activity:  time.Now(),
 	}
 
 	lobbies.L[key] = newLobby
@@ -82,9 +85,9 @@ func onCreateLobbySelect(ctx context.Context, b *bot.Bot, mes models.MaybeInacce
 
 	kb := inline.New(b).
 		Row().
-		Button(text.Convert(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia) + " " + user.Lang), onGameSelect).
+		Button(text.Convert(mes.Message.From.LanguageCode, text.GMafia), []byte(fmt.Sprintf("%d", text.GMafia)+" "+user.Lang), onGameSelect).
 		Row().
-		Button(text.Convert(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker) + " " + user.Lang), onGameSelect)
+		Button(text.Convert(mes.Message.From.LanguageCode, text.GBunker), []byte(fmt.Sprintf("%d", text.GBunker)+" "+user.Lang), onGameSelect)
 
 	user.SendReplayMarkup(ctx, b, kb, text.KeyCreatedF, key)
 

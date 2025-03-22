@@ -16,8 +16,14 @@ type DB interface {
 }
 
 func Connect() (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", 
-			config.Load().DatabaseHost, config.Load().DatabasePort, config.Load().DatabaseUser, config.Load().DatabasePassword, config.Load().DatabaseName)
+	psqlInfo := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", 
+		config.Load().DatabaseHost,
+		config.Load().DatabasePort, 
+		config.Load().DatabaseUser, 
+		config.Load().DatabasePassword, 
+		config.Load().DatabaseName,
+	)
 	
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {

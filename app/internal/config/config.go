@@ -9,17 +9,20 @@ import (
 )
 
 type Config struct {
-	TelegramBotApiToken  string
-	DatabaseURL          string
-	DatabaseUser         string
-	DatabasePassword     string
-	DatabaseName         string
-	DatabasePort         string
-	DatabaseHost         string
-	InactiveDaysDuration int    `json:"inactive_days_duration"`
-	CheckTime            int    `json:"check_time"`
-	SemaphoreTickets     int    `json:"semaphore_tickets"`
-	LogFilePath          string `json:"log_file_path"`
+	TelegramBotApiToken    string
+	DatabaseURL            string
+	DatabaseUser           string
+	DatabasePassword       string
+	DatabaseName           string
+	DatabasePort           string
+	DatabaseHost           string
+	InactiveDaysDuration   int64  `json:"inactive_days_duration"`
+	InactiveMinutsDuration int64  `json:"inactive_minuts_duration"`
+	InactiveHoursDuration  int64  `json:"inactive_hours_duration"`
+	CheckTimeDatabase      int64  `json:"check_time_database"`
+	CheckTimeMemory        int64  `json:"check_time_memory"`
+	SemaphoreTickets       int    `json:"semaphore_tickets"`
+	LogFilePath            string `json:"log_file_path"`
 }
 
 var (
@@ -33,8 +36,8 @@ func Load() *Config {
 		if err != nil {
 			err = godotenv.Load("../../configs/.env")
 			if err != nil {
-                panic(err)
-            }
+				panic(err)
+			}
 		}
 
 		config.TelegramBotApiToken = loadEnvStr("BOT_API_TOKEN")
@@ -49,8 +52,8 @@ func Load() *Config {
 		if err != nil {
 			jsonFile, err = os.ReadFile("../../configs/config.json")
 			if err != nil {
-                panic(err)
-            }
+				panic(err)
+			}
 		}
 
 		err = json.Unmarshal(jsonFile, &config)

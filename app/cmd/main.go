@@ -27,10 +27,20 @@ func main() {
 
 	repo := storage.NewRepository(db)
 	go repo.CleanUpTask(
-		24*time.Hour*time.Duration(config.Load().CheckTime),
+		24*time.Hour*time.Duration(config.Load().CheckTimeDatabase),
 		config.Load().InactiveDaysDuration,
 	)
 	handlers.LoadRepository(repo)
+
+	go handlers.UserActivityCleanUp(
+		time.Duration(config.Load().CheckTimeMemory),
+		time.Minute*time.Duration(config.Load().InactiveMinutsDuration),
+	)
+
+	go handlers.LobbyActivityCleanUp(
+		time.Duration(config.Load().CheckTimeMemory),
+        time.Hour*time.Duration(config.Load().InactiveHoursDuration),
+	)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()

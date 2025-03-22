@@ -129,6 +129,8 @@ type Lobby struct {
 	Game      GameStarter
 
 	Members Users
+
+	Activity time.Time
 }
 
 func (l *Lobby) StartGame(ctx context.Context, b *bot.Bot, repo *storage.Repository) {

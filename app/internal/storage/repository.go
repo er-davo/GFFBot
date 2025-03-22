@@ -27,7 +27,7 @@ func NewRepository(db database.DB) *Repository {
     }
 }
 
-func (r *Repository) deleteInatciveUsers(days int) error {
+func (r *Repository) deleteInatciveUsers(days int64) error {
 	r.sem.Acquire()
 	defer r.sem.Release()
 	
@@ -36,7 +36,7 @@ func (r *Repository) deleteInatciveUsers(days int) error {
 	return err
 }
 
-func (r *Repository) CleanUpTask(interval time.Duration, days int) {
+func (r *Repository) CleanUpTask(interval time.Duration, days int64) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 

@@ -138,45 +138,8 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	switch lob.GameType {
-	case text.GMafia:
-		if len(lob.Members) < game.MinimumMembersForMafia {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   text.Convert(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MinimumMembersForMafia),
-			})
-			return
-		}
-
-		if len(lob.Members) > game.MaximumMembersForMafia {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   text.Convert(update.Message.From.LanguageCode, text.MaximumMembersF, game.MaximumMembersForMafia),
-			})
-			return
-		}
-	case text.GBunker:
-		if len(lob.Members) < game.MinimumMembersForBunker {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   text.Convert(update.Message.From.LanguageCode, text.AtLeastMembersF, game.MinimumMembersForBunker),
-			})
-			return
-		}
-
-		if len(lob.Members) > game.MaximumMembersForBunker {
-			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   text.Convert(update.Message.From.LanguageCode, text.MaximumMembersF, game.MaximumMembersForBunker),
-			})
-			return
-		}
-	default:
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   text.Convert(update.Message.From.LanguageCode, text.CantStartGame),
-		})
-		logger.Log.Info("GameType is not selected", zap.String("lobby_key", currentUser.LobbyKey))
+	ok = ensureGame(ctx, b, update, &lob, &currentUser)
+	if !ok {
 		return
 	}
 
@@ -188,9 +151,11 @@ func GameStartHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	lobbies.L[currentUser.LobbyKey] = lob
 	lobbies.Mut.Unlock()
 
-	// go lobby.StartGame(ctx, b) ???
-
 	logger.Log.Info("new game started [NEED LOG CHANGES]", zap.Int("game_type", lob.GameType))
 
 	lob.StartGame(ctx, b, repo)
+
+	lobbies.Mut.Lock()
+	delete(lobbies.L, currentUser.LobbyKey)
+	lobbies.Mut.Unlock()
 }

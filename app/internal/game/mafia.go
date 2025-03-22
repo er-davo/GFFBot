@@ -53,133 +53,18 @@ type MafiaGame struct {
 }
 
 func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Repository) {
-	var wg sync.WaitGroup
-
 	countOfAliveMembers := len(*m.Members)
 
 	m.fillRoles(ctx, b)
 
 	for *m.IsStarted {
-		m.Members.SendAll(ctx, b, text.NightFalls)
+		m.Night(ctx, b)
 
 		time.Sleep(2 * time.Second)
 
-		// Mafia step
+		m.Day(ctx, b, countOfAliveMembers)
 
-		wg.Add(1) // check !!!
-
-		m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Mafia)
-
-		m.mafiaStep(ctx, b, &wg)
-
-		wg.Wait()
-
-		m.Members.SendAll(ctx, b, text.FallAsleepF, text.Mafia)
-
-		time.Sleep(2 * time.Second)
-
-		// Doctor step
-
-		m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Doctor)
-
-		time.Sleep(2 * time.Second)
-
-		if !m.doctorsIsDead() {
-			wg.Add(1)
-
-			for i := range m.doctors {
-				m.doctors[i].SendReplayMarkup(ctx, b,
-					m.doctorKeyboard(b, &wg),
-					text.MakeChoiceF, text.Doctor,
-					m.doctors[i].Name,
-				)
-			}
-
-			wg.Wait()
-		}
-
-		m.Members.SendAll(ctx, b, text.FallAsleepF, text.Doctor)
-
-		time.Sleep(2 * time.Second)
-
-		// Detective step
-
-		m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Detective)
-
-		time.Sleep(2 * time.Second)
-
-		if !m.detectivesIsDead() {
-			wg.Add(1)
-
-			for i := range m.detectives {
-				m.detectives[i].SendReplayMarkup(ctx, b,
-					m.detectiveKeyboard(b, &wg),
-					text.MakeChoiceF, text.Detective,
-					m.detectives[i].Name,
-				)
-			}
-
-			wg.Wait()
-		}
-
-		m.Members.SendAll(ctx, b, text.FallAsleepF, text.Detective)
-
-		time.Sleep(2 * time.Second)
-
-		m.Members.SendAll(ctx, b, text.DayIsComing)
-
-		if m.victim.Player.(*MafiaPlayer).isHealed {
-			m.Members.SendAll(ctx, b, text.MafiaFailed)
-			m.victim.Player.(*MafiaPlayer).isHealed = false
-			m.victim = nil
-		} else {
-			m.victim.Player.(*MafiaPlayer).isAlive = false
-			m.victim.Player.(*MafiaPlayer).isHealed = false
-
-			m.victim = nil
-
-			m.Members.SendAll(ctx, b, text.MafiaSuccessF, m.victim.Name)
-
-			countOfAliveMembers--
-		}
-
-		// Voting session
-
-		for {
-			wg.Add(countOfAliveMembers)
-
-			m.runVote(ctx, b, &wg)
-
-			wg.Wait()
-
-			if !*m.IsStarted {
-				return
-			}
-
-			var voteResults string
-
-			for _, mPlayer := range *m.Members {
-				if voteResults != "" {
-					voteResults += "\n"
-				}
-				voteResults += mPlayer.Name + ": " + fmt.Sprintf("%d", mPlayer.Player.(*MafiaPlayer).votes)
-			}
-
-			m.Members.SendAll(ctx, b, text.VotingResultsF, voteResults)
-
-			voteFirstMax, voteSecondMax := m.twoMaxVotes()
-
-			if voteFirstMax.Player.(*MafiaPlayer).votes == voteSecondMax.Player.(*MafiaPlayer).votes {
-				m.clearVotes()
-				m.Members.SendAll(ctx, b, text.VotesAreEqual)
-
-			} else {
-				m.Members.SendAll(ctx, b, text.VoteKickF, voteFirstMax.Name, voteFirstMax.Player.(*MafiaPlayer).role)
-				m.kick(voteFirstMax)
-				countOfAliveMembers--
-				break
-			}
-		}
+		m.VoteSession(ctx, b, countOfAliveMembers)		
 
 		if m.unwinnable() {
 			m.Members.SendAll(ctx, b, text.MafiaWon)
@@ -196,6 +81,133 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Reposito
 		if m.civiliansIsDead() {
 			m.Members.SendAll(ctx, b, text.MafiaWon)
 			m.loadResults(repo, true)
+			break
+		}
+	}
+}
+
+func (m *MafiaGame) Night(ctx context.Context, b Bot) {
+	var wg sync.WaitGroup
+
+	m.Members.SendAll(ctx, b, text.NightFalls)
+
+	time.Sleep(2 * time.Second)
+
+	// Mafia step
+
+	wg.Add(1) // check !!!
+
+	m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Mafia)
+
+	m.mafiaStep(ctx, b, &wg)
+
+	wg.Wait()
+
+	m.Members.SendAll(ctx, b, text.FallAsleepF, text.Mafia)
+
+	time.Sleep(2 * time.Second)
+
+	// Doctor step
+
+	m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Doctor)
+
+	time.Sleep(2 * time.Second)
+
+	if !m.doctorsIsDead() {
+		wg.Add(1)
+
+		for i := range m.doctors {
+			m.doctors[i].SendReplayMarkup(ctx, b,
+				m.doctorKeyboard(b, &wg),
+				text.MakeChoiceF, text.Doctor,
+				m.doctors[i].Name,
+			)
+		}
+
+		wg.Wait()
+	}
+
+	m.Members.SendAll(ctx, b, text.FallAsleepF, text.Doctor)
+
+	time.Sleep(2 * time.Second)
+
+	// Detective step
+
+	m.Members.SendAll(ctx, b, text.IsWakingUpF, text.Detective)
+
+	time.Sleep(2 * time.Second)
+
+	if !m.detectivesIsDead() {
+		wg.Add(1)
+
+		for i := range m.detectives {
+			m.detectives[i].SendReplayMarkup(ctx, b,
+				m.detectiveKeyboard(b, &wg),
+				text.MakeChoiceF, text.Detective,
+				m.detectives[i].Name,
+			)
+		}
+
+		wg.Wait()
+	}
+
+	m.Members.SendAll(ctx, b, text.FallAsleepF, text.Detective)
+}
+
+func (m *MafiaGame) Day(ctx context.Context, b Bot, countOfAliveMembers int) {
+	m.Members.SendAll(ctx, b, text.DayIsComing)
+
+	if m.victim.Player.(*MafiaPlayer).isHealed {
+		m.Members.SendAll(ctx, b, text.MafiaFailed)
+		m.victim.Player.(*MafiaPlayer).isHealed = false
+		m.victim = nil
+	} else {
+		m.victim.Player.(*MafiaPlayer).isAlive = false
+		m.victim.Player.(*MafiaPlayer).isHealed = false
+
+		m.victim = nil
+
+		m.Members.SendAll(ctx, b, text.MafiaSuccessF, m.victim.Name)
+
+		countOfAliveMembers--
+	}
+}
+
+func (m *MafiaGame) VoteSession(ctx context.Context, b Bot, countOfAliveMembers int) {
+	var wg sync.WaitGroup
+
+	for {
+		wg.Add(countOfAliveMembers)
+
+		m.runVote(ctx, b, &wg)
+
+		wg.Wait()
+
+		if !*m.IsStarted {
+			return
+		}
+
+		var voteResults string
+
+		for _, mPlayer := range *m.Members {
+			if voteResults != "" {
+				voteResults += "\n"
+			}
+			voteResults += mPlayer.Name + ": " + fmt.Sprintf("%d", mPlayer.Player.(*MafiaPlayer).votes)
+		}
+
+		m.Members.SendAll(ctx, b, text.VotingResultsF, voteResults)
+
+		voteFirstMax, voteSecondMax := m.twoMaxVotes()
+
+		if voteFirstMax.Player.(*MafiaPlayer).votes == voteSecondMax.Player.(*MafiaPlayer).votes {
+			m.clearVotes()
+			m.Members.SendAll(ctx, b, text.VotesAreEqual)
+
+		} else {
+			m.Members.SendAll(ctx, b, text.VoteKickF, voteFirstMax.Name, voteFirstMax.Player.(*MafiaPlayer).role)
+			m.kick(voteFirstMax)
+			countOfAliveMembers--
 			break
 		}
 	}

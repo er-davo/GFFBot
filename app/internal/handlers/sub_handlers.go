@@ -6,6 +6,7 @@ import (
 	"gffbot/internal/logger"
 	"gffbot/internal/text"
 	"strings"
+	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -51,6 +52,7 @@ func KeySubHandler(ctx context.Context, b *bot.Bot, update *models.Update, user 
 		users.Mut.Unlock()
 
 		lob.Members = append(lob.Members, user)
+		lob.Activity = time.Now()
 
 		lobbies.L[key] = lob
 
