@@ -241,13 +241,13 @@ func (bg *BunkerGame) send(ctx context.Context, b Bot, msg string, a ...any) {
 	wg.Add(len(*bg.Members))
 
 	for _, player := range *bg.Members {
-		go func() {
+		go func(user User) {
 			defer wg.Done()
 			b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: player.ChatID,
+				ChatID: user.ChatID,
 				Text:   fmt.Sprintf(msg, a...),
 			})
-		}()
+		}(player)
 	}
 
 	wg.Wait()
@@ -304,7 +304,7 @@ func (bg *BunkerGame) StartGame(ctx context.Context, b Bot, repo *storage.Reposi
 
 		wg.Wait()
 
-		for j := 0; j < tokick[step]; j++ {
+		for range tokick[step] {
 			for {
 				wg.Add(countOfAliveMembers)
 
@@ -344,11 +344,11 @@ func (bg *BunkerGame) fillFeatures() {
 	var wg sync.WaitGroup
 	wg.Add(len(*bg.Members))
 
-	for i := range *bg.Members {
-		go func() {
+	for iter := range *bg.Members {
+		go func(i int) {
 			defer wg.Done()
 			(*bg.Members)[i].Player.(*BunkerPlayer).fill()
-		}()
+		}(iter)
 	}
 
 	wg.Wait()
