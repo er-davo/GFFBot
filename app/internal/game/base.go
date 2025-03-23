@@ -83,7 +83,6 @@ func (u *User) GetText(key int, formats ...any) string {
 }
 
 type Users []User
-type UsersRef []*User
 
 func (u *Users) SendAll(ctx context.Context, b Bot, key int, a ...any) {
 	wg := sync.WaitGroup{}

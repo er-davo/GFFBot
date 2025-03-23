@@ -9,8 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	//	"time"
-
 	"gffbot/internal/logger"
 	"gffbot/internal/storage"
 	"gffbot/internal/text"
@@ -42,14 +40,13 @@ func (m MafiaPlayer) getRole() string {
 type MafiaGame struct {
 	IsStarted *bool
 
-	mut     sync.Mutex
 	Members *Users
 
 	victim *User
 
-	mafias     UsersRef
-	detectives UsersRef
-	doctors    UsersRef
+	mafias    []*User
+	detective *User
+	doctor    *User
 }
 
 func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Repository) {
@@ -64,7 +61,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Reposito
 
 		m.Day(ctx, b, countOfAliveMembers)
 
-		m.VoteSession(ctx, b, countOfAliveMembers)		
+		m.VoteSession(ctx, b, countOfAliveMembers)
 
 		if m.unwinnable() {
 			m.Members.SendAll(ctx, b, text.MafiaWon)
@@ -113,17 +110,13 @@ func (m *MafiaGame) Night(ctx context.Context, b Bot) {
 
 	time.Sleep(2 * time.Second)
 
-	if !m.doctorsIsDead() {
+	if m.doctor.Player.(*MafiaPlayer).isAlive {
 		wg.Add(1)
-
-		for i := range m.doctors {
-			m.doctors[i].SendReplayMarkup(ctx, b,
-				m.doctorKeyboard(b, &wg),
-				text.MakeChoiceF, text.Doctor,
-				m.doctors[i].Name,
-			)
-		}
-
+		m.doctor.SendReplayMarkup(ctx, b,
+			m.doctorKeyboard(b, &wg),
+			text.MakeChoiceF, text.Doctor,
+			m.doctor.Name,
+		)
 		wg.Wait()
 	}
 
@@ -137,17 +130,13 @@ func (m *MafiaGame) Night(ctx context.Context, b Bot) {
 
 	time.Sleep(2 * time.Second)
 
-	if !m.detectivesIsDead() {
+	if m.detective.Player.(*MafiaPlayer).isAlive {
 		wg.Add(1)
-
-		for i := range m.detectives {
-			m.detectives[i].SendReplayMarkup(ctx, b,
-				m.detectiveKeyboard(b, &wg),
-				text.MakeChoiceF, text.Detective,
-				m.detectives[i].Name,
-			)
-		}
-
+		m.detective.SendReplayMarkup(ctx, b,
+			m.detectiveKeyboard(b, &wg),
+			text.MakeChoiceF, text.Detective,
+			m.detective.Name,
+		)
 		wg.Wait()
 	}
 
@@ -233,27 +222,24 @@ func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
 		m.mafias[i].Player.(*MafiaPlayer).role = text.Mafia
 	}
 
-	for i := range 1 {
+	tofill = rand.IntN(size)
+
+	for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
 		tofill = rand.IntN(size)
-
-		for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
-			tofill = rand.IntN(size)
-		}
-
-		m.detectives = append(m.detectives, &(*m.Members)[tofill])
-		m.detectives[i].Player.(*MafiaPlayer).role = text.Detective
 	}
 
-	for i := range 1 {
+	m.detective = &(*m.Members)[tofill]
+	m.detective.Player.(*MafiaPlayer).role = text.Detective
+
+
+	tofill = rand.IntN(size)
+
+	for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
 		tofill = rand.IntN(size)
-
-		for (*m.Members)[tofill].Player.(*MafiaPlayer).role != 0 {
-			tofill = rand.IntN(size)
-		}
-
-		m.doctors = append(m.doctors, &(*m.Members)[tofill])
-		m.doctors[i].Player.(*MafiaPlayer).role = text.Doctor
 	}
+
+	m.doctor = &(*m.Members)[tofill]
+	m.doctor.Player.(*MafiaPlayer).role = text.Doctor
 
 	for i := range *m.Members {
 		(*m.Members)[i].Player.(*MafiaPlayer).isAlive = true
@@ -272,7 +258,7 @@ func (m *MafiaGame) doctorKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboard {
 			logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+				Text:   text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
 			})
 			return
 		}
@@ -307,7 +293,7 @@ func (m *MafiaGame) detectiveKeyboard(b Bot, wg *sync.WaitGroup) *inline.Keyboar
 			logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: mes.Message.Chat.ID,
-				Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+				Text:   text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
 			})
 			return
 		}
@@ -444,7 +430,7 @@ func (m *MafiaGame) runVote(ctx context.Context, b Bot, wg *sync.WaitGroup) {
 				logger.Log.Info("can't find member in lobby", zap.Int64("chat_id", mes.Message.Chat.ID), zap.Int64("mising_chat_id", int64(ChID)))
 				b.SendMessage(ctx, &bot.SendMessageParams{
 					ChatID: mes.Message.Chat.ID,
-					Text: text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
+					Text:   text.Convert(mes.Message.From.LanguageCode, text.SomethingWentWrong),
 				})
 				*m.IsStarted = false
 				m.Members.SendAll(ctx, b, text.GameStoped)
@@ -489,37 +475,19 @@ func (m *MafiaGame) civiliansIsDead() bool {
 	return true
 }
 
-func (m *MafiaGame) detectivesIsDead() bool {
-	for i := range m.detectives {
-		if m.detectives[i].Player.(*MafiaPlayer).isAlive {
-			return false
-		}
-	}
-	return true
-}
-
 func (m *MafiaGame) unwinnable() bool {
 	mafiaCount := 0
-    civilianCount := 0
+	civilianCount := 0
 
-    for _, player := range *m.Members {
-        if player.Player.(*MafiaPlayer).role == text.Mafia {
-            mafiaCount++
-        } else {
-            civilianCount++
-        }
-    }
-
-    return mafiaCount >= civilianCount
-}
-
-func (m *MafiaGame) doctorsIsDead() bool {
-	for i := range m.doctors {
-		if m.doctors[i].Player.(*MafiaPlayer).isAlive {
-			return false
+	for _, player := range *m.Members {
+		if player.Player.(*MafiaPlayer).role == text.Mafia {
+			mafiaCount++
+		} else {
+			civilianCount++
 		}
 	}
-	return true
+
+	return mafiaCount >= civilianCount
 }
 
 func (m *MafiaGame) twoMaxVotes() (User, User) {

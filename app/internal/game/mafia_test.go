@@ -32,8 +32,8 @@ func TestFillRoles(t *testing.T) {
 	mg.fillRoles(context.Background(), mockBot)
 
 	assert.Equal(t, mg.mafias[0].Player.(*MafiaPlayer).role, text.Mafia, "Mafia in not filled")
-	assert.Equal(t, mg.detectives[0].Player.(*MafiaPlayer).role, text.Detective, "Detective in not filled")
-	assert.Equal(t, mg.doctors[0].Player.(*MafiaPlayer).role, text.Doctor, "Doctor in not filled")
+	assert.Equal(t, mg.detective.Player.(*MafiaPlayer).role, text.Detective, "Detective in not filled")
+	assert.Equal(t, mg.doctor.Player.(*MafiaPlayer).role, text.Doctor, "Doctor in not filled")
 }
 
 func TestKick(t *testing.T) {
@@ -58,7 +58,7 @@ func TestMafiaIsDead(t *testing.T) {
 	}
 	game := &MafiaGame{
 		Members: &members,
-		mafias:  UsersRef{&members[0], &members[1]},
+		mafias:  []*User{&members[0], &members[1]},
 	}
 
 	assert.False(t, game.mafiaIsDead(),
