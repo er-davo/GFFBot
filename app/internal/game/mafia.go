@@ -63,21 +63,7 @@ func (m *MafiaGame) StartGame(ctx context.Context, b Bot, repo *storage.Reposito
 
 		m.VoteSession(ctx, b, countOfAliveMembers)
 
-		if m.unwinnable() {
-			m.Members.SendAll(ctx, b, text.MafiaWon)
-			m.loadResults(repo, true)
-			break
-		}
-
-		if m.mafiaIsDead() {
-			m.Members.SendAll(ctx, b, text.CiviliansWon)
-			m.loadResults(repo, false)
-			break
-		}
-
-		if m.civiliansIsDead() {
-			m.Members.SendAll(ctx, b, text.MafiaWon)
-			m.loadResults(repo, true)
+		if m.GameEnded(ctx, b, repo) {
 			break
 		}
 	}
@@ -200,6 +186,28 @@ func (m *MafiaGame) VoteSession(ctx context.Context, b Bot, countOfAliveMembers 
 			break
 		}
 	}
+}
+
+func (m *MafiaGame) GameEnded(ctx context.Context, b Bot, repo *storage.Repository) bool {
+	if m.unwinnable() {
+		m.Members.SendAll(ctx, b, text.MafiaWon)
+		m.loadResults(repo, true)
+		return true
+	}
+
+	if m.mafiaIsDead() {
+		m.Members.SendAll(ctx, b, text.CiviliansWon)
+		m.loadResults(repo, false)
+		return true
+	}
+
+	if m.civiliansIsDead() {
+		m.Members.SendAll(ctx, b, text.MafiaWon)
+		m.loadResults(repo, true)
+		return true
+	}
+
+	return false
 }
 
 func (m *MafiaGame) fillRoles(ctx context.Context, b Bot) {
