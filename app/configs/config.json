@@ -1,0 +1,9 @@
+{
+    "log_file_path" : "logs/app.log",
+    "inactive_days_duration" : 30,
+    "inactive_minuts_duration" : 10,
+    "inactive_hours_duration" : 2,
+    "check_time_database" : 30,
+    "check_time_memory" : 10,
+    "semaphore_tickets" : 10
+}
