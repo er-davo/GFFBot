@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	
 	"gffbot/internal/config"
 
@@ -16,16 +15,9 @@ type DB interface {
 }
 
 func Connect() (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", 
-		config.Load().DatabaseHost,
-		config.Load().DatabasePort, 
-		config.Load().DatabaseUser, 
-		config.Load().DatabasePassword, 
-		config.Load().DatabaseName,
-	)
+	psqlURL := config.Load().DatabaseURL
 	
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", psqlURL)
 	if err != nil {
         return nil, err
     }
