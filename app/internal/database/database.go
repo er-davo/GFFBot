@@ -2,10 +2,11 @@ package database
 
 import (
 	"database/sql"
-	
+
 	"gffbot/internal/config"
 
 	_ "github.com/lib/pq"
+	"github.com/pressly/goose/v3"
 )
 
 type DB interface {
@@ -23,6 +24,12 @@ func Connect() (*sql.DB, error) {
     }
 	
 	err = db.Ping()
+	if err != nil {
+        return nil, err
+    }
+
+	goose.SetBaseFS(nil)
+	err = goose.Up(db, "../migrations")
 	if err != nil {
         return nil, err
     }
