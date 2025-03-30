@@ -1,6 +1,6 @@
 .SILENT:
 
-include /etc/secrets/.env
+include .env
 
 go-run:
 	go run cmd/main.go
