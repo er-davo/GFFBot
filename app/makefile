@@ -1,7 +1,5 @@
 .SILENT:
 
-include /etc/secrets/secret.env
-
 go-run:
 	go run cmd/main.go
 
@@ -12,10 +10,10 @@ run:
 	./build/gffbot
 
 goose-up:
-	goose -dir ./migrations postgres $(DATABASE_URL) up
+	goose -dir ./migrations postgres $$(DATABASE_URL) up
 
 goose-down:
-	goose -dir ./migrations postgres $(DATABASE_URL) down
+	goose -dir ./migrations postgres $$(DATABASE_URL) down
 
 test:
 	go test ./...
