@@ -29,7 +29,7 @@ func Connect() (*sql.DB, error) {
     }
 
 	goose.SetBaseFS(nil)
-	err = goose.Up(db, "../migrations")
+	err = goose.Up(db, "migrations")
 	if err != nil {
         return nil, err
     }
