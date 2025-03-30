@@ -24,6 +24,6 @@ COPY --from=builder /app/makefile /gff
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
 RUN apk --no-cache add make
-#RUN make goose-up
+RUN make goose-up
 
 CMD [ "/gff/build/gffbot" ]

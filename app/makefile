@@ -12,10 +12,10 @@ run:
 	./build/gffbot
 
 goose-up:
-	goose -dir ./migrations postgres 'user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) port=5432 host=db sslmode=disable' up
+	goose -dir ./migrations postgres $(DATABASE_URL) up
 
 goose-down:
-	goose -dir ./migrations postgres 'user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) port=5432 host=db sslmode=disable' down
+	goose -dir ./migrations postgres $(DATABASE_URL) down
 
 test:
 	go test ./...
