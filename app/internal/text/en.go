@@ -60,7 +60,7 @@ var En = [...]string{
 	HelpCommand:       "Available commands:\n/login - log in to save your game statistics.\n/statistic - view your game statistics\n/lobby - create or join a lobby.\n/game_start - start the game",
 	LoginCommand:      "Logging in or signing up...",
 	StatisticCommandF: "Your statistics:\n%s",
-	LobbyCommand:      "Choose a game to play:",
+	LobbyCommand:      "Create a lobby or join an existing one:",
 	
 	LoginSuccess: "You have successfully logged in!",
 	LoginAlready: "You are already logged in!",

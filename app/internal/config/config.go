@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -32,14 +30,6 @@ var (
 
 func Load() *Config {
 	once.Do(func() {
-		err := godotenv.Load("configs/.env")
-		if err != nil {
-			err = godotenv.Load("../../configs/.env")
-			if err != nil {
-				panic(err)
-			}
-		}
-
 		config.TelegramBotApiToken = loadEnvStr("BOT_API_TOKEN")
 		config.DatabaseURL = loadEnvStr("DATABASE_URL")
 		config.DatabaseUser = loadEnvStr("POSTGRES_USER")

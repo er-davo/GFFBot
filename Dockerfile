@@ -20,7 +20,7 @@ COPY --from=builder /app/configs /gff/configs
 COPY --from=builder /app/internal/storage/migrations /gff/migrations
 COPY --from=builder /app/makefile /gff
 
-COPY .env ./.env
+#COPY .env ./.env
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
 RUN apk --no-cache add make

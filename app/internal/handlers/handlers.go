@@ -101,7 +101,7 @@ func StatisticHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	user.SendMessage(ctx, b, text.StartCommandF, stats.ToString(user.Lang))
+	user.SendMessage(ctx, b, text.StatisticCommandF, stats.ToString(user.Lang))
 }
 
 func LobbyHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
