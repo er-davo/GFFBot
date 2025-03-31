@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -18,6 +19,10 @@ import (
 func main() {
 	logger.Init()
 	defer logger.Log.Sync()
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("I am a telegram GFF bot"))
+	})
 
 	db, err := database.Connect()
 	if err != nil {
@@ -62,5 +67,7 @@ func main() {
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/game_start", bot.MatchTypeExact, handlers.GameStartHandler)
 
 
-	gffbot.Start(ctx)
+	go gffbot.Start(ctx)
+
+	http.ListenAndServe(":8080", nil)
 }
