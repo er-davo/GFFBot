@@ -19,11 +19,13 @@ func main() {
 	logger.Init()
 	defer logger.Log.Sync()
 
+	logger.Log.Info("connecting to database...")
 	db, err := database.Connect()
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+	logger.Log.Info("connected succesfull")
 
 	repo := storage.NewRepository(db)
 	go repo.CleanUpTask(
@@ -61,5 +63,6 @@ func main() {
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/lobby", bot.MatchTypePrefix, handlers.LobbyHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/game_start", bot.MatchTypeExact, handlers.GameStartHandler)
 
+	logger.Log.Info("starting bot...")
 	gffbot.Start(ctx)
 }
