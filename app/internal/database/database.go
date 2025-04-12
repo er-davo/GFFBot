@@ -10,29 +10,29 @@ import (
 )
 
 type DB interface {
-	Exec(query string, args...interface{}) (sql.Result, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
 	QueryRow(query string, args ...any) *sql.Row
 	Begin() (*sql.Tx, error)
 }
 
 func Connect() (*sql.DB, error) {
-	psqlURL := config.Load().DatabaseURL
-	
+	psqlURL := config.Load().DatabaseURL + "?sslmode=require"
+
 	db, err := sql.Open("postgres", psqlURL)
 	if err != nil {
-        return nil, err
-    }
-	
+		return nil, err
+	}
+
 	err = db.Ping()
 	if err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 
 	goose.SetBaseFS(nil)
 	err = goose.Up(db, "migrations")
 	if err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 
 	return db, nil
 }
