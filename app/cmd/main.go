@@ -44,7 +44,7 @@ func main() {
 
 	go handlers.LobbyActivityCleanUp(
 		time.Duration(config.Load().CheckTimeMemory),
-        time.Hour*time.Duration(config.Load().InactiveHoursDuration),
+		time.Hour*time.Duration(config.Load().InactiveHoursDuration),
 	)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -66,8 +66,5 @@ func main() {
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/lobby", bot.MatchTypePrefix, handlers.LobbyHandler)
 	gffbot.RegisterHandler(bot.HandlerTypeMessageText, "/game_start", bot.MatchTypeExact, handlers.GameStartHandler)
 
-
-	go gffbot.Start(ctx)
-
-	http.ListenAndServe(":8080", nil)
+	gffbot.Start(ctx)
 }
