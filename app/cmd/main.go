@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -19,10 +18,6 @@ import (
 func main() {
 	logger.Init()
 	defer logger.Log.Sync()
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("I am a telegram GFF bot"))
-	})
 
 	db, err := database.Connect()
 	if err != nil {
